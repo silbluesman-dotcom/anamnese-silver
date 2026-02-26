@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anamnese Fast - Silvestre Azevedo</title>
+  <script>
+    // Configuração de nuvem — pré-carregada em qualquer dispositivo
+    (function() {
+      if (!localStorage.getItem('anamnese_jsonbin_key')) {
+        localStorage.setItem('anamnese_jsonbin_key', atob('JDJhJDEwJEVTOHE5VWEwNkFMTi9vV2hqNTdXU3U4cncxbk9HNE5vVFF2T2VPaG1TTC9wYS5XeDV2RXZt'));
+      }
+      if (!localStorage.getItem('anamnese_jsonbin_bin')) {
+        localStorage.setItem('anamnese_jsonbin_bin', '699f7d7fae596e708f4a122b');
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+ <div id="loginOverlay" aria-hidden="false">
+    <div id="loginBox">
+        <h2>Anamnese Fast</h2>
+        
+        <!-- TELA DE LOGIN -->
+        <div id="telaLogin">
+            <p><strong>Seja bem-vindo, ótimo dia de trabalho!</strong></p>
+            <p style="font-size: 0.85rem; margin-top: 8px;">Entre com suas credenciais</p>
+            <input id="loginUsuario" type="text" placeholder="Usuário" autocomplete="username">
+            <input id="loginSenha" type="password" placeholder="Senha" autocomplete="current-password">
+            <button id="loginEntrar" type="button">Entrar</button>
+            <div id="loginErro" style="display: none; margin-top: 10px; color: var(--alert); font-weight: 900; font-size: 0.85rem;">Usuário ou senha incorretos.</div>
+            <div class="toggle-link" onclick="mostrarReset()">Esqueci minha senha / Resetar credenciais</div>
+        </div>
+        
+        <!-- TELA DE CADASTRO (primeira vez) -->
+        <div id="telaCadastro" style="display: none;">
+            <p><strong>Primeira vez aqui! Crie suas credenciais:</strong></p>
+            <input id="cadastroUsuario" type="text" placeholder="Escolha um usuário" autocomplete="username">
+            <input id="cadastroSenha" type="password" placeholder="Escolha uma senha" autocomplete="new-password">
+            <input id="cadastroSenhaConfirm" type="password" placeholder="Confirme a senha" autocomplete="new-password">
+            <button id="cadastroBotao" type="button">Criar conta</button>
+            <div id="cadastroErro" style="display: none; margin-top: 10px; color: var(--alert); font-weight: 900; font-size: 0.85rem;"></div>
+        </div>
+        
+        <!-- TELA DE RESET -->
+        <div id="telaReset" style="display: none;">
+            <p><strong>Resetar credenciais</strong></p>
+            <p style="font-size: 0.85rem; margin-top: 8px;">Isso apagará seu usuário e senha atuais.</p>
+            <button id="resetConfirmar" type="button" style="background: var(--alert);">Confirmar reset</button>
+            <div class="toggle-link" onclick="voltarLogin()">Cancelar</div>
+            <div class="reset-info">⚠️ Atenção: O histórico de pacientes será mantido, apenas as credenciais serão apagadas.</div>
+        </div>
+    </div>
+</div>
+
+<!-- ALERTA DE AUTO-SAVE -->
+<div id="autosaveAlert" class="autosave-alert">
+  <p>📋 Dados salvos encontrados! Deseja restaurar?</p>
+  <div class="autosave-alert-actions">
+    <button class="btn-restore" onclick="restaurarAutosave()">Restaurar</button>
+    <button class="btn-discard" onclick="descartarAutosave()">Começar do zero</button>
+  </div>
+</div>
+
+<!-- BOTÃO FLUTUANTE DE HISTÓRICO -->
+<button id="btnHistorico" class="btn-historico" title="Histórico de Pacientes">
+  📋
+</button>
+
+<!-- BOTÃO FLUTUANTE DE LEMBRETES -->
+<button onclick="abrirModalLembretes()" class="btn-historico" id="btnLembretes" title="Lembretes de Retorno" style="bottom:90px; position:relative;">
+  🔔
+  <span id="badge-lembretes" class="badge-notif" style="display:none;">0</span>
+</button>
+
+<!-- MODAL DE HISTÓRICO -->
+<div id="modalHistorico" class="modal-historico">
+  <div class="modal-historico-content">
+    <div class="modal-historico-header">
+      <h2>📋 Histórico de Pacientes</h2>
+      <button class="btn-fechar-historico" onclick="fecharHistorico()">Fechar</button>
+    </div>
+
+    <div class="search-box">
+      <input type="text" id="searchPaciente" placeholder="🔍 Buscar por nome do paciente...">
+    </div>
+
+    <div class="pacientes-count" id="pacientesCount">
+      0 pacientes salvos
+    </div>
+
+    <div class="lista-pacientes" id="listaPacientes">
+      <div class="empty-state">
+        <p>📭</p>
+        <p>Nenhum paciente salvo ainda</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <div class="container">
+        <!-- BOTÃO DARK MODE -->
+    <button class="btn-dark-mode" onclick="toggleDarkMode()" id="btnDarkMode">
+      🌙 Modo Escuro
+    </button>
+
+    <!-- BOTÃO BACKUP -->
+    <button class="btn-backup" onclick="toggleMenuBackup()" id="btnBackup">
+      💾 Backup ▼
+    </button>
+
+    <!-- BOTÃO NUVEM -->
+    <button id="btn-nuvem" onclick="abrirConfigNuvem()"
+      style="position:absolute;top:120px;right:20px;padding:10px 18px;border:none;border-radius:8px;font-weight:900;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,0.2);transition:all 0.3s;z-index:100;color:white;background:linear-gradient(135deg,#616161,#424242);">
+      ☁️ Nuvem
+    </button>
+
+    <!-- MINI MENU BACKUP -->
+    <div id="menuBackup" style="display:none; position:absolute; top:125px; right:20px; background:white; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); padding:10px; z-index:101; min-width:150px;">
+      <button onclick="exportarDados()" style="width:100%; padding:10px; margin-bottom:8px; background:#4caf50; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.85rem;">📤 Exportar</button>
+      <button onclick="document.getElementById('importFile').click()" style="width:100%; padding:10px; background:#ff9800; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.85rem;">📥 Importar</button>
+      <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarDados(event)">
+    </div>
+
+        <!-- BOTÃO ESPECIALIDADES -->
+    <button class="btn-especialidades" onclick="abrirModalEspecialidades()">
+      🏥 Especialidades ▼
+    </button>
+
+    <div class="header">
+      <h1>Anamnese Fast</h1>
+      <span class="author">Desenvolvido por: Silvestre Azevedo - Acadêmico de Medicina</span>
+      <div style="text-align:center;">
+        <img src="perfil.jpg" class="profile-pic" onerror="this.style.display='none'" alt="Foto perfil" />
+      </div>
+    </div>
+
+<div class="row" style="margin-top: 10px;">
+      <div class="col">
+        <span class="input-label label-bold" style="color:var(--primary);">RESPONSÁVEL PELO ATENDIMENTO</span>
+        <input type="text" id="responsavel" class="input-field" placeholder="Seu nome completo (Ex: Dr. Silvestre Azevedo)" />
+      </div>
+    </div>
+    <div class="section-title">Admissão / Evolução</div>
+
+    <div class="row">
+      <div class="col">
+        <span class="input-label label-bold">PACIENTE</span>
+        <input type="text" id="nome" class="input-field" placeholder="Nome do paciente" />
+      </div>
+      <div class="col" style="flex:0.35;">
+        <span class="input-label label-bold">IDADE</span>
+        <input type="number" id="idade" class="input-field" placeholder="anos" />
+      </div>
+      <div class="col" style="flex:0.35;">
+        <span class="input-label label-bold">SEXO</span>
+        <select id="sexo" class="input-field">
+          <option value="M" selected>M</option>
+          <option value="F">F</option>
+        </select>
+      </div>
+      <div class="col">
+        <span class="input-label label-bold">RELIGIÃO</span>
+        <input type="text" id="religiao" class="input-field" value="" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <span class="input-label label-bold">UNIDADE / SETOR</span>
+        <input type="text" id="unidade" class="input-field" placeholder="Ex.: PS / UTI / Enfermaria / UBS" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <span class="input-label label-alert">ALERGIAS MEDICAMENTOSAS</span>
+        <div class="toggle-group" id="alergias-group">
+          <div class="toggle-btn active" onclick="setOption('alergias','Não')">NÃO</div>
+          <div class="toggle-btn" onclick="setOption('alergias','Sim')">SIM</div>
+        </div>
+        <input type="text" id="alergias-detalhe" class="input-field detail-input" placeholder="Quais medicamentos? (IMPORTANTE)" />
+      </div>
+
+      <div class="col">
+        <span class="input-label label-alert">INTERNAÇÃO NOS ÚLTIMOS 3 MESES?</span>
+        <div class="toggle-group" id="internacao-group">
+          <div class="toggle-btn active" onclick="setOption('internacao','Não')">NÃO</div>
+          <div class="toggle-btn" onclick="setOption('internacao','Sim')">SIM</div>
+        </div>
+        <input type="text" id="internacao-detalhe" class="input-field detail-input" placeholder="Motivo / onde / datas (se souber)" />
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col" style="flex-basis:100%;">
+        <span class="input-label label-bold">HÁBITOS DE VIDA</span>
+      </div>
+
+      <!-- TABAGISMO COM CÁLCULO -->
+      <div class="col">
+        <span class="input-label">Tabagismo</span>
+        <div class="toggle-group" id="tabagismo-group">
+          <div class="toggle-btn active" onclick="setOption('tabagismo','Não')">NÃO</div>
+          <div class="toggle-btn" onclick="setOption('tabagismo','Sim')">SIM</div>
+        </div>
+
+        <input type="text" id="tabagismo-detalhe"
+               class="input-field detail-input"
+               placeholder="Qtd / frequência / maços-ano" />
+
+        <div id="tabagismo-calc" class="detail-input">
+          <div style="margin-top:8px; font-size:0.8rem; font-weight:700;">
+            Cálculo da carga tabágica:
+          </div>
+          <div class="row" style="margin-top:5px; gap:8px;">
+            <div class="col">
+              <span class="input-label">Cigarros/dia</span>
+              <input type="number" id="tab_cigs_dia" class="input-field" min="0"
+                     oninput="calcularCargaTabagica()" />
+            </div>
+            <div class="col">
+              <span class="input-label">Anos fumando</span>
+              <input type="number" id="tab_anos" class="input-field" min="0" step="0.5"
+                     oninput="calcularCargaTabagica()" />
+            </div>
+          </div>
+          <div style="margin-top:6px; font-size:0.85rem; font-weight:800;">
+            Carga tabágica (maços-ano):
+            <span id="tab_carga" style="color:var(--primary);">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <span class="input-label">Etilismo</span>
+        <div class="toggle-group" id="etilismo-group">
+          <div class="toggle-btn active" onclick="setOption('etilismo','Não')">NÃO</div>
+          <div class="toggle-btn" onclick="setOption('etilismo','Sim')">SIM</div>
+        </div>
+        <input type="text" id="etilismo-detalhe" class="input-field detail-input" placeholder="Qtd / frequência / tempo de uso" />
+      </div>
+
+      <div class="col">
+        <span class="input-label">Drogas ilícitas</span>
+        <div class="toggle-group" id="drogas-group">
+          <div class="toggle-btn active" onclick="setOption('drogas','Não')">NÃO</div>
+          <div class="toggle-btn" onclick="setOption('drogas','Sim')">SIM</div>
+        </div>
+        <input type="text" id="drogas-detalhe" class="input-field detail-input" placeholder="Qual substância / padrão de uso" />
+      </div>
+    </div>
+
+    <div class="section-title">História</div>
+
+    <span class="input-label label-bold">QUEIXA PRINCIPAL (QP)</span>
+    <input type="text" id="qp" class="input-field" style="margin-bottom:10px;" placeholder="Descreva a QP" />
+
+    <span class="input-label label-bold">HISTÓRIA DA DOENÇA ATUAL (HDA)</span>
+    
+    <!-- Barra de formatação HDA -->
+    <div style="display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap;">
+      <button type="button" onclick="formatarHDA('bold')" style="padding:6px 12px; background:#555; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:900; font-size:0.85rem;" title="Negrito">
+        <strong>B</strong>
+      </button>
+      <button type="button" onclick="formatarHDA('italic')" style="padding:6px 12px; background:#555; color:white; border:none; border-radius:4px; cursor:pointer; font-style:italic; font-size:0.85rem;" title="Itálico">
+        <em>I</em>
+      </button>
+      <select id="hdaFontSize" style="padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-size:0.85rem; cursor:pointer;">
+        <option value="">Tamanho</option>
+        <option value="small">Pequeno</option>
+        <option value="normal">Normal</option>
+        <option value="large">Grande</option>
+      </select>
+      <button type="button" onclick="aplicarTamanhoFonteHDA()" style="padding:6px 12px; background:#00695c; color:white; border:none; border-radius:4px; cursor:pointer; font-weight:700; font-size:0.85rem;">
+        Aplicar tamanho
+      </button>
+    </div>
+    
+    <textarea id="hda" rows="4" placeholder="Descreva a HDA..."></textarea>
+
+    <div class="row">
+      <div class="col">
+        <span class="input-label label-bold">HISTÓRIA PATOLÓGICA PREGRESSA (HPP)</span>
+        <textarea id="hpp" rows="3" placeholder="Comorbidades, cirurgias, internações prévias, uso crônico de medicamentos etc."></textarea>
+      </div>
+      <div class="col">
+        <span class="input-label label-bold">MEDICAMENTOS DE USO CONTÍNUO</span>
+        <textarea id="meds_continuos" rows="3" placeholder="01 - "></textarea>
+      </div>
+    </div>
+
+    <div class="row">
+  <div class="col">
+    <span class="input-label label-bold">HISTÓRIA FAMILIAR (HF)</span>
+    <textarea id="hf" rows="3" placeholder="Doenças na família, causas de óbito relevantes, doenças hereditárias etc."></textarea>
+  </div>
+  <div class="col">
+    <span class="input-label label-bold">EXAMES LABORATORIAIS</span>
+    <textarea id="labs" rows="3" placeholder="Cole/registre aqui os resultados (hemograma, eletrólitos, gaso, etc.)."></textarea>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col">
+    <span class="input-label label-bold">EXAMES DE IMAGEM</span>
+    <textarea id="imagem" rows="3"
+      placeholder="Laudos e principais achados de RX, TC, RM, USG, eco, etc."></textarea>
+  </div>
+</div>
+
+    <div class="section-title">Exame Físico</div>
+
+    <span class="input-label label-bold">Sinais Vitais</span>
+    <div class="vitals-grid" style="margin-bottom:12px;">
+      <div class="vital-box">
+        <span class="input-label">
+          <span class="emoji-icon" role="img" aria-label="pressão arterial">🩺</span>
+          PA (mmHg)
+        </span>
+        <input type="text" id="pa" class="input-field" placeholder="120x80" />
+      </div>
+      <div class="vital-box">
+        <span class="input-label">
+          <span class="emoji-icon" role="img" aria-label="frequência cardíaca">❤️</span>
+          FC (bpm)
+        </span>
+        <input type="number" id="fc" class="input-field" placeholder="80" />
+      </div>
+      <div class="vital-box">
+        <span class="input-label">
+          <span class="emoji-icon" role="img" aria-label="frequência respiratória">🫁</span>
+          FR (ipm)
+        </span>
+        <input type="number" id="fr" class="input-field" placeholder="18" />
+      </div>
+      <div class="vital-box">
+        <span class="input-label">
+          <span class="emoji-icon" role="img" aria-label="saturação de oxigênio">🩸</span>
+          SatO2 (%)
+        </span>
+        <input type="number" id="sat" class="input-field" placeholder="98" />
+      </div>
+      <div class="vital-box">
+        <span class="input-label">
+          <span class="emoji-icon" role="img" aria-label="temperatura">🌡️</span>
+          T (°C)
+        </span>
+        <input type="number" step="0.1" id="temp" class="input-field" placeholder="36.5" />
+      </div>
+      <div class="vital-box">
+        <span class="input-label">
+          <span class="emoji-icon" role="img" aria-label="glicemia capilar">🍬</span>
+          Glicemia (mg/dL)
+        </span>
+        <input type="number" id="hgt" class="input-field" placeholder="100" />
+      </div>
+    </div>
+
+    <div class="section-title">Ectoscopia e Segmentar</div>
+
+    <span class="input-label label-bold">ECTOSCOPIA</span>
+    <textarea id="ef_ectoscopia" rows="3"></textarea>
+
+    <div class="row" style="margin-top:10px;">
+      <div class="col">
+        <span class="input-label label-bold">Cabeça e pescoço</span>
+        <textarea id="ef_cp" rows="3"></textarea>
+      </div>
+      <div class="col">
+        <span class="input-label label-bold">ACV</span>
+        <textarea id="ef_acv" rows="3"></textarea>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <span class="input-label label-bold">AP</span>
+        <textarea id="ef_ap" rows="3"></textarea>
+      </div>
+      <div class="col">
+        <span class="input-label label-bold">ABD</span>
+        <textarea id="ef_abd" rows="3"></textarea>
+      </div>
+    </div>
+
+    <span class="input-label label-bold">NEURO</span>
+    <textarea id="ef_neuro" rows="3"></textarea>
+
+    <span class="input-label label-bold" style="margin-top:10px;">MEMBROS</span>
+    <textarea id="ef_membros" rows="2"></textarea>
+
+    <div class="section-title">Exame Neurológico Detalhado</div>
+    <textarea id="neuro_detalhado" rows="10"></textarea>
+
+    <!-- ============ SEÇÃO: DIAGNÓSTICOS DIFERENCIAIS ============ -->
+    <div class="section-title">🔍 Diagnósticos Diferenciais / Hipóteses Diagnósticas</div>
+    
+    <div style="margin-bottom:15px;">
+      <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
+        <input type="text" id="busca-cid" class="input-field" placeholder="🔎 Digite e aguarde... ex: diabetes, pneumonia, J18, depressão" style="flex:2;" />
+        <button type="button" onclick="buscarCID10()" style="flex:0.5; padding:10px; background:#00695c; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700;">Buscar</button>
+      </div>
+      
+      <div id="resultados-cid" style="display:none; max-height:200px; overflow-y:auto; border:1px solid #ccc; border-radius:6px; padding:10px; background:#fafafa; margin-bottom:10px;">
+        <!-- Resultados da busca aparecem aqui -->
+      </div>
+    </div>
+
+    <div id="diagnosticos-lista" style="margin-bottom:15px;">
+      <!-- Lista de diagnósticos selecionados -->
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <span class="input-label label-bold">HIPÓTESE DIAGNÓSTICA 1 (Principal)</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="hd1" class="input-field" placeholder="Diagnóstico principal" style="flex:2;" />
+          <input type="text" id="hd1-cid" class="input-field" placeholder="CID-10" style="flex:1;" />
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <span class="input-label">Hipótese Diagnóstica 2</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="hd2" class="input-field" placeholder="Diagnóstico diferencial" style="flex:2;" />
+          <input type="text" id="hd2-cid" class="input-field" placeholder="CID-10" style="flex:1;" />
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <span class="input-label">Hipótese Diagnóstica 3</span>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input type="text" id="hd3" class="input-field" placeholder="Diagnóstico diferencial" style="flex:2;" />
+          <input type="text" id="hd3-cid" class="input-field" placeholder="CID-10" style="flex:1;" />
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ SEÇÃO: CONDUTA E PLANO TERAPÊUTICO ============ -->
+    <div class="section-title">💊 Conduta e Plano Terapêutico</div>
+    
+    <div class="row">
+      <div class="col">
+        <span class="input-label label-bold">EXAMES SOLICITADOS</span>
+        <textarea id="exames-solicitados" rows="4" placeholder="Liste os exames complementares solicitados (ex: Hemograma, Raio-X de tórax, Glicemia...)"></textarea>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <span class="input-label label-bold">PRESCRIÇÃO / TRATAMENTO</span>
+        <textarea id="prescricao" rows="6" placeholder="01 - &#10;02 - &#10;03 - "></textarea>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <span class="input-label label-bold">ORIENTAÇÕES AO PACIENTE</span>
+        <textarea id="orientacoes" rows="4" placeholder="Orientações gerais, cuidados, sinais de alerta, recomendações..."></textarea>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <span class="input-label label-bold">PLANO DE SEGUIMENTO</span>
+        <textarea id="seguimento" rows="3" placeholder="Retorno, reavaliação, encaminhamentos..."></textarea>
+      </div>
+      <div class="col">
+        <span class="input-label label-bold">⏰ LEMBRETE DE RETORNO</span>
+        <input type="date" id="data-retorno" class="input-field" />
+        <textarea id="obs-retorno" rows="2" placeholder="Observações do retorno..." style="margin-top:8px;"></textarea>
+        <button type="button" onclick="salvarLembrete()" style="margin-top:8px; width:100%; padding:10px; background:#ff9800; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700;">
+          🔔 Salvar Lembrete
+        </button>
+      </div>
+    </div>
+
+    <div class="action-area">
+            <!-- ============ SEÇÃO ESPECIALIZADA - GASTROENTEROLOGIA ============ -->
+    <div id="secao-gastro" class="secao-especializada">
+      <span class="badge-especialidade">🏥 ANAMNESE - GASTROENTEROLOGIA</span>
+
+      <div class="section-title">🔥 3. Dor Abdominal</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="dor-abdominal" onchange="toggleDorAbdominal()">
+          <label for="dor-abdominal">Apresenta dor abdominal</label>
+        </div>
+      </div>
+
+      <div id="dor-abdominal-detalhes" style="display:none; margin-left:20px;">
+        <span class="input-label label-bold">Localização</span>
+        <div class="checkbox-group">
+          <div class="checkbox-item"><input type="checkbox" id="loc-epigastrio"><label for="loc-epigastrio">Epigástrio</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="loc-hd"><label for="loc-hd">Hipocôndrio direito</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="loc-he"><label for="loc-he">Hipocôndrio esquerdo</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="loc-peri"><label for="loc-peri">Periumbilical</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="loc-fid"><label for="loc-fid">Fossa ilíaca direita</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="loc-fie"><label for="loc-fie">Fossa ilíaca esquerda</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="loc-difusa"><label for="loc-difusa">Difusa</label></div>
+        </div>
+
+        <span class="input-label label-bold">Tipo</span>
+        <div class="checkbox-group">
+          <div class="checkbox-item"><input type="checkbox" id="tipo-queimacao"><label for="tipo-queimacao">Queimação</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="tipo-colica"><label for="tipo-colica">Cólica</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="tipo-peso"><label for="tipo-peso">Peso</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="tipo-pontada"><label for="tipo-pontada">Pontada</label></div>
+        </div>
+
+        <span class="input-label label-bold">Intensidade</span>
+        <div class="checkbox-group">
+          <div class="checkbox-item"><input type="checkbox" id="int-leve"><label for="int-leve">Leve</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="int-moderada"><label for="int-moderada">Moderada</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="int-intensa"><label for="int-intensa">Intensa</label></div>
+        </div>
+
+        <span class="input-label label-bold">Irradiação</span>
+        <div class="checkbox-group">
+          <div class="checkbox-item"><input type="checkbox" id="irrad-dorso"><label for="irrad-dorso">Dorso</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="irrad-ombro"><label for="irrad-ombro">Ombro direito</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="irrad-nao"><label for="irrad-nao">Não irradia</label></div>
+        </div>
+
+        <span class="input-label label-bold">Relação</span>
+        <div class="checkbox-group">
+          <div class="checkbox-item"><input type="checkbox" id="rel-piora-alim"><label for="rel-piora-alim">Piora após alimentação</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="rel-jejum"><label for="rel-jejum">Melhora em jejum</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="rel-evac"><label for="rel-evac">Melhora após evacuação</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="rel-noturna"><label for="rel-noturna">Dor noturna</label></div>
+        </div>
+      </div>
+
+      <div class="section-title">🔼 4. Sintomas Digestivos Altos</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="azia"><label for="azia">Azia / Pirose</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="regurg"><label for="regurg">Regurgitação</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="nauseas"><label for="nauseas">Náuseas</label></div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="vomitos" onchange="toggleVomitos()">
+          <label for="vomitos">Vômitos</label>
+        </div>
+        <div id="vomitos-detalhes" style="display:none;" class="checkbox-subitem">
+          <div class="checkbox-item"><input type="checkbox" id="vom-alim"><label for="vom-alim">Alimentares</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="vom-bil"><label for="vom-bil">Biliosos</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="vom-sangue"><label for="vom-sangue">Com sangue (hematêmese)</label></div>
+        </div>
+        <div class="checkbox-item">
+          <input type="checkbox" id="disfagia" onchange="toggleDisfagia()">
+          <label for="disfagia">Disfagia</label>
+        </div>
+        <div id="disfagia-detalhes" style="display:none;" class="checkbox-subitem">
+          <div class="checkbox-item"><input type="checkbox" id="disf-sol"><label for="disf-sol">Sólidos</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="disf-liq"><label for="disf-liq">Líquidos</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="disf-ambos"><label for="disf-ambos">Ambos</label></div>
+        </div>
+        <div class="checkbox-item"><input type="checkbox" id="odinofagia"><label for="odinofagia">Odinofagia</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="saciedade"><label for="saciedade">Saciedade precoce</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="plenitude"><label for="plenitude">Plenitude pós-prandial</label></div>
+      </div>
+
+      <div class="section-title">🔽 5. Sintomas Digestivos Baixos</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="diarreia" onchange="toggleDiarreia()">
+          <label for="diarreia">Diarreia</label>
+        </div>
+        <div id="diarreia-detalhes" style="display:none;" class="checkbox-subitem">
+          <div class="checkbox-item"><input type="checkbox" id="diarr-aguda"><label for="diarr-aguda">Aguda</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="diarr-cronica"><label for="diarr-cronica">Crônica</label></div>
+        </div>
+        <div class="checkbox-item"><input type="checkbox" id="constipacao"><label for="constipacao">Constipação</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="alternancia"><label for="alternancia">Alternância diarreia/constipação</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="tenesmo"><label for="tenesmo">Tenesmo</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="urgencia"><label for="urgencia">Urgência evacuatória</label></div>
+      </div>
+
+      <div class="section-title">💩 6. Características das Fezes</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="fezes-normais"><label for="fezes-normais">Normais</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fezes-pastosas"><label for="fezes-pastosas">Pastosas</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fezes-liquidas"><label for="fezes-liquidas">Líquidas</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fezes-duras"><label for="fezes-duras">Endurecidas</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fezes-melena"><label for="fezes-melena">Escuras (melena)</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fezes-sangue"><label for="fezes-sangue">Com sangue vivo</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fezes-muco"><label for="fezes-muco">Com muco</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fezes-oleosas"><label for="fezes-oleosas">Oleosas / brilhantes (esteatorreia)</label></div>
+      </div>
+
+      <div class="section-title">🟡 7. Icterícia / Hepatobiliar</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="ict-olhos"><label for="ict-olhos">Olhos amarelados</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ict-pele"><label for="ict-pele">Pele amarelada</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="urina-escura"><label for="urina-escura">Urina escura</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fezes-claras"><label for="fezes-claras">Fezes claras</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="prurido"><label for="prurido">Prurido</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="dor-hd-gastro"><label for="dor-hd-gastro">Dor em hipocôndrio direito</label></div>
+      </div>
+
+      <div class="section-title">🌡️ 8. Sintomas Sistêmicos</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="febre-gastro"><label for="febre-gastro">Febre</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="perda-peso"><label for="perda-peso">Perda de peso involuntária</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="anorexia-gastro"><label for="anorexia-gastro">Anorexia</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fadiga-gastro"><label for="fadiga-gastro">Fadiga</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="sudorese"><label for="sudorese">Sudorese noturna</label></div>
+      </div>
+
+      <div class="section-title">🏥 9. Antecedentes Gastrointestinais</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="ant-gastrite"><label for="ant-gastrite">Gastrite</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-drge"><label for="ant-drge">DRGE</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-ulcera"><label for="ant-ulcera">Úlcera péptica</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-hepatite"><label for="ant-hepatite">Hepatite</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-cirrose"><label for="ant-cirrose">Cirrose</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-colel"><label for="ant-colel">Colelitíase</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-panc"><label for="ant-panc">Pancreatite</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-crohn"><label for="ant-crohn">Doença de Crohn</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-rcu"><label for="ant-rcu">Retocolite Ulcerativa</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-cirurg"><label for="ant-cirurg">Cirurgia abdominal prévia</label></div>
+      </div>
+
+      <div class="section-title">💊 10. Uso de Medicamentos</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="med-aines"><label for="med-aines">AINEs</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="med-cortic"><label for="med-cortic">Corticoides</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="med-atb"><label for="med-atb">Antibióticos recentes</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="med-ibp"><label for="med-ibp">IBP / Antiácidos</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="med-lax"><label for="med-lax">Laxantes</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="med-fito"><label for="med-fito">Fitoterápicos</label></div>
+      </div>
+
+      <div class="section-title">🍺 11. Hábitos de Vida</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item">
+          <input type="checkbox" id="hab-etil" onchange="toggleEtilismoGastro()">
+          <label for="hab-etil">Etilismo</label>
+        </div>
+        <div id="etilismo-detalhes-gastro" style="display:none;" class="checkbox-subitem">
+          <div class="checkbox-item"><input type="checkbox" id="etil-social"><label for="etil-social">Social</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="etil-freq"><label for="etil-freq">Frequente</label></div>
+          <div class="checkbox-item"><input type="checkbox" id="etil-pesado"><label for="etil-pesado">Pesado</label></div>
+        </div>
+        <div class="checkbox-item"><input type="checkbox" id="hab-tab"><label for="hab-tab">Tabagismo</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="hab-drogas"><label for="hab-drogas">Drogas ilícitas</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="hab-gord"><label for="hab-gord">Dieta rica em gordura</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="hab-lact"><label for="hab-lact">Consumo excessivo de lactose</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="hab-gluten"><label for="hab-gluten">Consumo de glúten</label></div>
+      </div>
+
+      <div class="section-title">👨‍👩‍👧 12. Antecedentes Familiares</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="fam-cancer"><label for="fam-cancer">Câncer gastrointestinal</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fam-dii"><label for="fam-dii">Doença inflamatória intestinal</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fam-hepat"><label for="fam-hepat">Doença hepática</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fam-polipose"><label for="fam-polipose">Polipose familiar</label></div>
+      </div>
+
+      <div class="section-title">🚨 13. Sinais de Alarme</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="alarm-peso"><label for="alarm-peso">Perda de peso inexplicada</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="alarm-anemia"><label for="alarm-anemia">Anemia</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="alarm-sangr"><label for="alarm-sangr">Sangramento digestivo</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="alarm-disf"><label for="alarm-disf">Disfagia progressiva</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="alarm-vom"><label for="alarm-vom">Vômitos persistentes</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="alarm-dor"><label for="alarm-dor">Dor abdominal noturna</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="alarm-hf"><label for="alarm-hf">História familiar de câncer GI</label></div>
+      </div>
+
+      <div class="section-title">📝 14. Observações Finais</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="obs-qv"><label for="obs-qv">Impacto na qualidade de vida</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="obs-expect"><label for="obs-expect">Expectativa do paciente</label></div>
+      </div>
+      <textarea id="obs-outras" rows="3" placeholder="Outras informações relevantes..."></textarea>
+    </div>
+    <!-- ============ FIM SEÇÃO GASTROENTEROLOGIA ============ -->
+
+    <!-- ============ SEÇÃO ESPECIALIZADA - PSIQUIATRIA ============ -->
+    <div id="secao-psiq" class="secao-especializada">
+      <span class="badge-especialidade">🧠 ANAMNESE - PSIQUIATRIA</span>
+
+      <div class="section-title">🗣️ 1. Motivo da Consulta</div>
+      <textarea id="psiq-motivo" rows="2" placeholder="Descreva o motivo da consulta psiquiátrica..."></textarea>
+
+      <div class="section-title">📋 2. Queixa Principal e HDA Psiquiátrica</div>
+      <textarea id="psiq-hda" rows="4" placeholder="História detalhada dos sintomas psiquiátricos (início, evolução, fatores desencadeantes, tratamentos prévios)..."></textarea>
+
+      <div class="section-title">😔 3. Humor e Afeto</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="humor-deprimido"><label for="humor-deprimido">Humor deprimido</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="humor-elevado"><label for="humor-elevado">Humor elevado/eufórico</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="humor-irritavel"><label for="humor-irritavel">Humor irritável</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="humor-ansioso"><label for="humor-ansioso">Humor ansioso</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="humor-labil"><label for="humor-labil">Humor lábil</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="humor-embotado"><label for="humor-embotado">Afeto embotado/achatado</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="humor-inadequado"><label for="humor-inadequado">Afeto inadequado</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="anedonia"><label for="anedonia">Anedonia (perda de prazer)</label></div>
+      </div>
+
+      <div class="section-title">😰 4. Sintomas Ansiosos</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="ansiedade-geral"><label for="ansiedade-geral">Ansiedade generalizada</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="panico"><label for="panico">Crises de pânico</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fobias"><label for="fobias">Fobias específicas</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fobia-social"><label for="fobia-social">Fobia social</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="agorafobia"><label for="agorafobia">Agorafobia</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="toc"><label for="toc">Sintomas obsessivo-compulsivos</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="estresse-pos"><label for="estresse-pos">Estresse pós-traumático</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="preocup-excessiva"><label for="preocup-excessiva">Preocupação excessiva</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="tensao-muscular"><label for="tensao-muscular">Tensão muscular</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="inquietacao"><label for="inquietacao">Inquietação</label></div>
+      </div>
+
+      <div class="section-title">💭 5. Pensamento</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="pensa-lento"><label for="pensa-lento">Pensamento lentificado</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="pensa-acelerado"><label for="pensa-acelerado">Pensamento acelerado</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="pensa-desorg"><label for="pensa-desorg">Pensamento desorganizado</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="pensa-persev"><label for="pensa-persev">Perseveração</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ideias-delic"><label for="ideias-delic">Ideias delirantes</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="delic-perseg"><label for="delic-perseg">Delírios persecutórios</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="delic-grandeza"><label for="delic-grandeza">Delírios de grandeza</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="delic-ruina"><label for="delic-ruina">Delírios de ruína</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="delic-culpa"><label for="delic-culpa">Delírios de culpa</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="pensa-magico"><label for="pensa-magico">Pensamento mágico</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="obsessoes"><label for="obsessoes">Obsessões</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ruminacoes"><label for="ruminacoes">Ruminações</label></div>
+      </div>
+
+      <div class="section-title">👁️ 6. Percepção</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="aluc-auditivas"><label for="aluc-auditivas">Alucinações auditivas</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="aluc-visuais"><label for="aluc-visuais">Alucinações visuais</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="aluc-tateis"><label for="aluc-tateis">Alucinações táteis</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="aluc-olfativas"><label for="aluc-olfativas">Alucinações olfativas</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ilusoes"><label for="ilusoes">Ilusões</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="desperson"><label for="desperson">Despersonalização</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="desreal"><label for="desreal">Desrealização</label></div>
+      </div>
+
+      <div class="section-title">🧭 7. Orientação e Consciência</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="orient-preserv"><label for="orient-preserv">Orientado (tempo, espaço, pessoa)</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="desorient-tempo"><label for="desorient-tempo">Desorientado no tempo</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="desorient-esp"><label for="desorient-esp">Desorientado no espaço</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="desorient-pess"><label for="desorient-pess">Desorientado quanto à pessoa</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="confusao-mental"><label for="confusao-mental">Confusão mental</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="rebaixa-consc"><label for="rebaixa-consc">Rebaixamento do nível de consciência</label></div>
+      </div>
+
+      <div class="section-title">🧠 8. Memória e Cognição</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="mem-recente-alt"><label for="mem-recente-alt">Memória recente alterada</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="mem-remota-alt"><label for="mem-remota-alt">Memória remota alterada</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="amnesia"><label for="amnesia">Amnésia</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="confabula"><label for="confabula">Confabulação</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="deficit-atenc"><label for="deficit-atenc">Déficit de atenção/concentração</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="deficit-exec"><label for="deficit-exec">Déficit de funções executivas</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="deficit-linguagem"><label for="deficit-linguagem">Déficit de linguagem</label></div>
+      </div>
+
+      <div class="section-title">💤 9. Sono</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="insonia-inicial"><label for="insonia-inicial">Insônia inicial (dificuldade para dormir)</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="insonia-manut"><label for="insonia-manut">Insônia de manutenção (despertares noturnos)</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="insonia-terminal"><label for="insonia-terminal">Insônia terminal (despertar precoce)</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="hipersonia"><label for="hipersonia">Hipersonia</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="pesadelos"><label for="pesadelos">Pesadelos frequentes</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="terror-noturno"><label for="terror-noturno">Terror noturno</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="sono-nao-repousante"><label for="sono-nao-repousante">Sono não repousante</label></div>
+      </div>
+
+      <div class="section-title">🍽️ 10. Apetite e Alimentação</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="apetite-reduz"><label for="apetite-reduz">Apetite reduzido</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="apetite-aument"><label for="apetite-aument">Apetite aumentado</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="perda-peso-psiq"><label for="perda-peso-psiq">Perda de peso</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ganho-peso"><label for="ganho-peso">Ganho de peso</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="compuls-alim"><label for="compuls-alim">Compulsão alimentar</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="restric-alim"><label for="restric-alim">Restrição alimentar</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="purgacao"><label for="purgacao">Purgação</label></div>
+      </div>
+
+      <div class="section-title">⚡ 11. Energia e Psicomotricidade</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="fadiga-psiq"><label for="fadiga-psiq">Fadiga/cansaço excessivo</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="anergia"><label for="anergia">Anergia (falta de energia)</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="agitacao-psicomotora"><label for="agitacao-psicomotora">Agitação psicomotora</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="retardo-psicomotor"><label for="retardo-psicomotor">Retardo psicomotor</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="catatonia"><label for="catatonia">Sintomas catatônicos</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="akathisia"><label for="akathisia">Acatisia</label></div>
+      </div>
+
+      <div class="section-title">💀 12. Ideação Suicida e Comportamento</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="ideacao-suicida"><label for="ideacao-suicida">Ideação suicida passiva</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ideacao-ativa"><label for="ideacao-ativa">Ideação suicida ativa</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="plano-suicida"><label for="plano-suicida">Plano suicida estruturado</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="tentativa-previa"><label for="tentativa-previa">Tentativa de suicídio prévia</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="autolesao"><label for="autolesao">Comportamento autolesivo</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ideacao-homicida"><label for="ideacao-homicida">Ideação homicida</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="impulsividade"><label for="impulsividade">Impulsividade aumentada</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="agressividade"><label for="agressividade">Agressividade</label></div>
+      </div>
+
+      <div class="section-title">👥 13. Funcionamento Social e Ocupacional</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="isolamento-social"><label for="isolamento-social">Isolamento social</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="prejuizo-trab"><label for="prejuizo-trab">Prejuízo no trabalho/estudos</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="conflitos-fam"><label for="conflitos-fam">Conflitos familiares</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="conflitos-inter"><label for="conflitos-inter">Dificuldades interpessoais</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="perda-autonomia"><label for="perda-autonomia">Perda de autonomia</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="negligencia-auto"><label for="negligencia-auto">Negligência com autocuidado</label></div>
+      </div>
+
+      <div class="section-title">💊 14. Uso de Substâncias</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="uso-alcool-psiq"><label for="uso-alcool-psiq">Uso de álcool</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="depend-alcool"><label for="depend-alcool">Dependência de álcool</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="uso-tabaco-psiq"><label for="uso-tabaco-psiq">Uso de tabaco</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="uso-cannabis"><label for="uso-cannabis">Uso de cannabis</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="uso-cocaina"><label for="uso-cocaina">Uso de cocaína/crack</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="uso-anfeta"><label for="uso-anfeta">Uso de anfetaminas</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="uso-benzod"><label for="uso-benzod">Uso de benzodiazepínicos</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="uso-opioides"><label for="uso-opioides">Uso de opioides</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="uso-outras"><label for="uso-outras">Outras substâncias</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="abstinencia"><label for="abstinencia">Síndrome de abstinência</label></div>
+      </div>
+
+      <div class="section-title">🧬 15. Antecedentes Psiquiátricos Pessoais</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="ant-depressao"><label for="ant-depressao">Depressão prévia</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-mania"><label for="ant-mania">Mania/hipomania prévia</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-psicose"><label for="ant-psicose">Episódio psicótico prévio</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-ansiedade"><label for="ant-ansiedade">Transtorno de ansiedade prévio</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-toc-prev"><label for="ant-toc-prev">TOC prévio</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-tept"><label for="ant-tept">TEPT prévio</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="ant-aliment"><label for="ant-aliment">Transtorno alimentar prévio</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="internan-psiq"><label for="internan-psiq">Internação psiquiátrica prévia</label></div>
+      </div>
+
+      <div class="section-title">👨‍👩‍👧‍👦 16. Antecedentes Familiares Psiquiátricos</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="fam-depressao"><label for="fam-depressao">Depressão na família</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fam-bipolar"><label for="fam-bipolar">Transtorno bipolar na família</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fam-esquizo"><label for="fam-esquizo">Esquizofrenia na família</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fam-suicidio"><label for="fam-suicidio">Suicídio na família</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fam-alcool"><label for="fam-alcool">Alcoolismo na família</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="fam-drogas"><label for="fam-drogas">Dependência química na família</label></div>
+      </div>
+
+      <div class="section-title">💊 17. Medicações Psiquiátricas Atuais/Prévias</div>
+      <textarea id="psiq-meds" rows="4" placeholder="Liste medicações psiquiátricas em uso ou já utilizadas (nome, dose, tempo de uso, resposta, efeitos colaterais)..."></textarea>
+
+      <div class="section-title">🧘 18. Tratamentos Prévios</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="trat-psicoterapia"><label for="trat-psicoterapia">Psicoterapia prévia</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="trat-tcc"><label for="trat-tcc">TCC (Terapia Cognitivo-Comportamental)</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="trat-psicanalise"><label for="trat-psicanalise">Psicanálise</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="trat-grupo"><label for="trat-grupo">Terapia em grupo</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="trat-ect"><label for="trat-ect">Eletroconvulsoterapia (ECT)</label></div>
+      </div>
+
+      <div class="section-title">👶 19. História do Desenvolvimento</div>
+      <textarea id="psiq-desenvolvimento" rows="3" placeholder="Gestação, parto, desenvolvimento neuropsicomotor, marcos do desenvolvimento..."></textarea>
+
+      <div class="section-title">🏠 20. História Pessoal e Social</div>
+      <textarea id="psiq-historia-social" rows="4" placeholder="Infância, escolaridade, relacionamentos, trabalho, traumas, eventos estressantes, suporte social, estrutura familiar..."></textarea>
+
+      <div class="section-title">⚖️ 21. Questões Médico-Legais</div>
+      <div class="checkbox-group">
+        <div class="checkbox-item"><input type="checkbox" id="judicializacao"><label for="judicializacao">Processo judicial em andamento</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="interdicao"><label for="interdicao">Interdição/curatela</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="medida-protet"><label for="medida-protet">Medida protetiva</label></div>
+        <div class="checkbox-item"><input type="checkbox" id="hist-forense"><label for="hist-forense">História forense</label></div>
+      </div>
+
+      <div class="section-title">📝 22. Observações Adicionais</div>
+      <textarea id="psiq-obs" rows="3" placeholder="Outras informações relevantes..."></textarea>
+    </div>
+    <!-- ============ FIM SEÇÃO PSIQUIATRIA ============ -->
+
+      <button class="btn-generate" onclick="gerarRelatorio()">GERAR EVOLUÇÃO</button>
+      <button class="btn-reset" onclick="limparTudo()">LIMPAR TUDO</button>
+    </div>
+  </div>
+
+  <div id="modalResultado" class="modal">
+    <div class="modal-content">
+      <h2 style="color:var(--primary); text-align:center; margin-bottom:10px;">Relatório Final</h2>
+      <textarea id="finalReport" readonly></textarea>
+      <div class="modal-actions">
+        <button class="btn-modal btn-copy" onclick="copiar()">Copiar Texto</button>
+        <button class="btn-modal" style="background:#4caf50;" onclick="salvarAnamneseAtual()">💾 Salvar Anamnese</button>
+        <button class="btn-modal btn-pdf" onclick="salvarPDF()">Salvar PDF</button>
+        <button class="btn-modal btn-close" onclick="fecharModal()">Fechar / Editar</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Botão flutuante Scores -->
+<button id="btn-scores-flutuante" type="button" onclick="abrirScores()">
+  Scores
+</button>
+
+<!-- Fundo escuro do modal -->
+<div id="modal-scores-backdrop" onclick="fecharScores()"></div>
+
+<!-- Modal com os scores -->
+<div id="modal-scores">
+  <span class="fechar" onclick="fecharScores()">✕</span>
+  <h2>Scores</h2>
+
+  <!-- CURB-65 -->
+  <section>
+    <h3>CURB-65</h3>
+
+    <label>
+      <input type="checkbox" id="curb-confusao">
+      Confusão mental aguda
+    </label>
+
+    <label>
+      <input type="checkbox" id="curb-ureia">
+      Ureia/BUN elevado (≥ 7 mmol/L ou ≥ 20 mg/dL)
+    </label>
+
+    <label>
+      <input type="checkbox" id="curb-fr30">
+      FR ≥ 30 irpm
+    </label>
+
+    <label>
+      <input type="checkbox" id="curb-pa">
+      PAS &lt; 90 mmHg ou PAD ≤ 60 mmHg
+    </label>
+
+    <label>
+      <input type="checkbox" id="curb-idade65">
+      Idade ≥ 65 anos
+    </label>
+
+    <button type="button" onclick="atualizaCURB65()">Calcular CURB-65</button>
+    <p id="curb-resultado"></p>
+  </section>
+
+  <!-- Glasgow -->
+  <section>
+    <h3>Escala de Glasgow</h3>
+
+    <label>Abertura ocular (E)</label>
+    <select id="gcs-ocular" onchange="atualizaGCS()">
+      <option value="4">4 - Espontânea</option>
+      <option value="3">3 - Ao chamado</option>
+      <option value="2">2 - À dor</option>
+      <option value="1">1 - Nenhuma</option>
+    </select>
+
+    <label>Resposta verbal (V)</label>
+    <select id="gcs-verbal" onchange="atualizaGCS()">
+      <option value="5">5 - Orientado</option>
+      <option value="4">4 - Confuso</option>
+      <option value="3">3 - Palavras inapropriadas</option>
+      <option value="2">2 - Sons incompreensíveis</option>
+      <option value="1">1 - Nenhuma</option>
+    </select>
+
+    <label>Resposta motora (M)</label>
+    <select id="gcs-motora" onchange="atualizaGCS()">
+      <option value="6">6 - Obedece comandos</option>
+      <option value="5">5 - Localiza dor</option>
+      <option value="4">4 - Retirada à dor</option>
+      <option value="3">3 - Flexão anormal</option>
+      <option value="2">2 - Extensão anormal</option>
+      <option value="1">1 - Nenhuma</option>
+    </select>
+
+    <button type="button" onclick="atualizaGCS()">Calcular Glasgow</button>
+    <p id="gcs-resultado"></p>
+  </section>
+
+  <!-- TIMI Score -->
+  <section>
+    <h3>TIMI Score (Síndrome Coronariana Aguda)</h3>
+
+    <label>
+      <input type="checkbox" id="timi-idade">
+      Idade ≥ 65 anos
+    </label>
+
+    <label>
+      <input type="checkbox" id="timi-fatores">
+      ≥ 3 fatores de risco (HAS, DM, tabagismo, dislipidemia, história familiar)
+    </label>
+
+    <label>
+      <input type="checkbox" id="timi-estenose">
+      Estenose coronariana conhecida ≥ 50%
+    </label>
+
+    <label>
+      <input type="checkbox" id="timi-aspirina">
+      Uso de AAS nos últimos 7 dias
+    </label>
+
+    <label>
+      <input type="checkbox" id="timi-angina">
+      ≥ 2 episódios de angina nas últimas 24h
+    </label>
+
+    <label>
+      <input type="checkbox" id="timi-st">
+      Desvio do segmento ST ≥ 0,5 mm
+    </label>
+
+    <label>
+      <input type="checkbox" id="timi-marcadores">
+      Marcadores cardíacos elevados (troponina, CK-MB)
+    </label>
+
+    <button type="button" onclick="atualizaTIMI()">Calcular TIMI</button>
+    <p id="timi-resultado"></p>
+  </section>
+
+  <!-- SOFA Score -->
+  <section>
+    <h3>SOFA Score (Disfunção Orgânica)</h3>
+
+    <label>PaO2/FiO2 ou SatO2/FiO2</label>
+    <select id="sofa-resp">
+      <option value="0">≥ 400 (normal)</option>
+      <option value="1">300-399</option>
+      <option value="2">200-299</option>
+      <option value="3">100-199 (VM)</option>
+      <option value="4">&lt; 100 (VM)</option>
+    </select>
+
+    <label>Plaquetas (×10³/μL)</label>
+    <select id="sofa-plaq">
+      <option value="0">≥ 150</option>
+      <option value="1">100-149</option>
+      <option value="2">50-99</option>
+      <option value="3">20-49</option>
+      <option value="4">&lt; 20</option>
+    </select>
+
+    <label>Bilirrubina (mg/dL)</label>
+    <select id="sofa-bili">
+      <option value="0">&lt; 1.2</option>
+      <option value="1">1.2-1.9</option>
+      <option value="2">2.0-5.9</option>
+      <option value="3">6.0-11.9</option>
+      <option value="4">≥ 12.0</option>
+    </select>
+
+    <label>PAM ou uso de vasopressores</label>
+    <select id="sofa-cv">
+      <option value="0">PAM ≥ 70 mmHg</option>
+      <option value="1">PAM &lt; 70 mmHg</option>
+      <option value="2">Dopamina ≤ 5 ou dobutamina</option>
+      <option value="3">Dopamina &gt; 5 ou Nora ≤ 0.1</option>
+      <option value="4">Dopamina &gt; 15 ou Nora &gt; 0.1</option>
+    </select>
+
+    <label>Escala de Glasgow</label>
+    <select id="sofa-neuro">
+      <option value="0">15</option>
+      <option value="1">13-14</option>
+      <option value="2">10-12</option>
+      <option value="3">6-9</option>
+      <option value="4">&lt; 6</option>
+    </select>
+
+    <label>Creatinina (mg/dL) ou débito urinário</label>
+    <select id="sofa-renal">
+      <option value="0">&lt; 1.2</option>
+      <option value="1">1.2-1.9</option>
+      <option value="2">2.0-3.4</option>
+      <option value="3">3.5-4.9 ou DU &lt; 500ml/dia</option>
+      <option value="4">≥ 5.0 ou DU &lt; 200ml/dia</option>
+    </select>
+
+    <button type="button" onclick="atualizaSOFA()">Calcular SOFA</button>
+    <p id="sofa-resultado"></p>
+  </section>
+
+  <!-- Wells Score (TVP) -->
+  <section>
+    <h3>Wells Score (Trombose Venosa Profunda)</h3>
+
+    <label>
+      <input type="checkbox" id="wells-cancer">
+      Câncer ativo (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="wells-paralisia">
+      Paralisia, paresia ou imobilização recente de MMII (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="wells-leito">
+      Restrição ao leito &gt; 3 dias ou cirurgia &lt; 12 semanas (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="wells-dor">
+      Dor localizada ao longo do sistema venoso profundo (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="wells-edema">
+      Edema de toda a perna (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="wells-panturrilha">
+      Circunferência da panturrilha &gt; 3cm que o lado assintomático (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="wells-cacifo">
+      Edema com cacifo (mais na perna sintomática) (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="wells-veias">
+      Veias superficiais colaterais (não varicosas) (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="wells-tvp-previa">
+      TVP prévia documentada (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="wells-alternativo">
+      Diagnóstico alternativo tão ou mais provável que TVP (-2)
+    </label>
+
+    <button type="button" onclick="atualizaWells()">Calcular Wells</button>
+    <p id="wells-resultado"></p>
+  </section>
+
+  <!-- CHA2DS2-VASc Score -->
+  <section>
+    <h3>CHA2DS2-VASc (Risco de AVC em FA)</h3>
+
+    <label>
+      <input type="checkbox" id="cha2-chf">
+      Insuficiência Cardíaca Congestiva (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="cha2-has">
+      Hipertensão (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="cha2-idade75">
+      Idade ≥ 75 anos (+2)
+    </label>
+
+    <label>
+      <input type="checkbox" id="cha2-dm">
+      Diabetes Mellitus (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="cha2-avc">
+      AVC/AIT/Tromboembolismo prévio (+2)
+    </label>
+
+    <label>
+      <input type="checkbox" id="cha2-vasc">
+      Doença vascular (IAM, placa aórtica, DAP) (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="cha2-idade65">
+      Idade 65-74 anos (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="cha2-sexo">
+      Sexo feminino (+1)
+    </label>
+
+    <button type="button" onclick="atualizaCHA2DS2VASc()">Calcular CHA2DS2-VASc</button>
+    <p id="cha2-resultado"></p>
+  </section>
+
+  <!-- HAS-BLED Score -->
+  <section>
+    <h3>HAS-BLED (Risco de Sangramento)</h3>
+
+    <label>
+      <input type="checkbox" id="hasbled-has">
+      Hipertensão não controlada (PAS &gt; 160) (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="hasbled-renal">
+      Função renal anormal (diálise, Cr &gt; 2.6) (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="hasbled-hepat">
+      Função hepática anormal (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="hasbled-avc">
+      AVC prévio (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="hasbled-sangra">
+      História de sangramento (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="hasbled-inr">
+      INR lábil (< 60% no alvo) (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="hasbled-idade">
+      Idade &gt; 65 anos (+1)
+    </label>
+
+    <label>
+      <input type="checkbox" id="hasbled-drogas">
+      Drogas (antiagregantes, AINEs) ou álcool (+1)
+    </label>
+
+    <button type="button" onclick="atualizaHASBLED()">Calcular HAS-BLED</button>
+    <p id="hasbled-resultado"></p>
+  </section>
+</div>
+
+  <script src="app.js"></script>
+    <!-- MODAL DE ESPECIALIDADES -->
+  <div id="modalEspecialidades" class="modal-especialidades">
+    <div class="modal-content-esp">
+      <h2>🏥 Selecione a Especialidade</h2>
+      <div class="especialidade-item" onclick="selecionarEspecialidade('gastro')">
+        🔥 Gastroenterologia
+      </div>
+      <div class="especialidade-item" onclick="selecionarEspecialidade('psiq')">
+        🧠 Psiquiatria
+      </div>
+      <div class="especialidade-item" onclick="alert('Em breve!')">
+        ❤️ Cardiologia (Em breve)
+      </div>
+      <div class="especialidade-item" onclick="alert('Em breve!')">
+        🫁 Pneumologia (Em breve)
+      </div>
+      <div class="especialidade-item" onclick="alert('Em breve!')">
+        🧠 Neurologia (Em breve)
+      </div>
+      <button class="btn-fechar-modal" onclick="fecharModalEspecialidades()">Fechar</button>
+    </div>
+  </div>
+</body>
+</html>
