@@ -1,4 +1,318 @@
 
+// ============ SIDEBAR ============
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const icon = document.getElementById('sidebar-toggle-icon');
+  sidebar.classList.toggle('collapsed');
+  icon.textContent = sidebar.classList.contains('collapsed') ? '☰' : '✕';
+}
+
+function novaAnamneseForm() {
+  if (confirm('Iniciar nova anamnese? Os dados não salvos serão perdidos.')) {
+    document.querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea').forEach(el => { el.value = ''; });
+    document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(el => { el.checked = false; });
+    document.querySelectorAll('select').forEach(el => { el.selectedIndex = 0; });
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }
+}
+
+// ============ AUTOCOMPLETE DE MEDICAMENTOS ============
+const MEDICAMENTOS_LISTA = [
+  // Cardiovascular / Anti-hipertensivos
+  "Enalapril 5mg","Enalapril 10mg","Enalapril 20mg",
+  "Losartana 25mg","Losartana 50mg","Losartana 100mg",
+  "Valsartana 80mg","Valsartana 160mg",
+  "Amlodipino 5mg","Amlodipino 10mg",
+  "Nifedipino 10mg","Nifedipino 20mg retard",
+  "Propranolol 10mg","Propranolol 40mg","Propranolol 80mg",
+  "Atenolol 25mg","Atenolol 50mg","Atenolol 100mg",
+  "Metoprolol 25mg","Metoprolol 50mg","Metoprolol 100mg",
+  "Carvedilol 3,125mg","Carvedilol 6,25mg","Carvedilol 12,5mg","Carvedilol 25mg",
+  "Bisoprolol 2,5mg","Bisoprolol 5mg","Bisoprolol 10mg",
+  "Hidroclorotiazida 12,5mg","Hidroclorotiazida 25mg",
+  "Furosemida 20mg","Furosemida 40mg",
+  "Espironolactona 25mg","Espironolactona 50mg",
+  "Captopril 12,5mg","Captopril 25mg","Captopril 50mg",
+  "Ramipril 2,5mg","Ramipril 5mg","Ramipril 10mg",
+  "Olmesartana 20mg","Olmesartana 40mg",
+  "Isossorbida 5mg sublingual","Isossorbida 10mg","Isossorbida 20mg",
+  "Nitroglicerina spray sublingual",
+  "Digoxina 0,25mg","Amiodarona 100mg","Amiodarona 200mg",
+  "Warfarina 1mg","Warfarina 2,5mg","Warfarina 5mg",
+  "Rivaroxabana 10mg","Rivaroxabana 15mg","Rivaroxabana 20mg",
+  "Apixabana 2,5mg","Apixabana 5mg",
+  "Dabigatrana 75mg","Dabigatrana 110mg","Dabigatrana 150mg",
+  "AAS 81mg","AAS 100mg","AAS 200mg","AAS 500mg",
+  "Clopidogrel 75mg","Ticagrelor 60mg","Ticagrelor 90mg",
+  "Sinvastatina 10mg","Sinvastatina 20mg","Sinvastatina 40mg","Sinvastatina 80mg",
+  "Atorvastatina 10mg","Atorvastatina 20mg","Atorvastatina 40mg","Atorvastatina 80mg",
+  "Rosuvastatina 5mg","Rosuvastatina 10mg","Rosuvastatina 20mg","Rosuvastatina 40mg",
+  "Bezafibrato 200mg","Fenofibrato 160mg",
+  // Diabetes
+  "Metformina 500mg","Metformina 850mg","Metformina 1000mg",
+  "Glibenclamida 2,5mg","Glibenclamida 5mg",
+  "Glicazida 30mg MR","Glicazida 60mg MR",
+  "Glimepirida 1mg","Glimepirida 2mg","Glimepirida 4mg",
+  "Sitagliptina 50mg","Sitagliptina 100mg",
+  "Vildagliptina 50mg","Saxagliptina 5mg","Alogliptina 12,5mg","Alogliptina 25mg",
+  "Empagliflozina 10mg","Empagliflozina 25mg",
+  "Dapagliflozina 10mg","Canagliflozina 100mg","Canagliflozina 300mg",
+  "Semaglutida 0,5mg","Semaglutida 1mg","Semaglutida 2mg",
+  "Liraglutida 0,6mg","Liraglutida 1,2mg","Liraglutida 1,8mg",
+  "Insulina NPH 100UI/ml","Insulina Regular 100UI/ml",
+  "Insulina Glargina 100UI/ml","Insulina Detemir 100UI/ml",
+  "Insulina Lispro 100UI/ml","Insulina Aspart 100UI/ml","Insulina Glulisina 100UI/ml",
+  // Tireoide
+  "Levotiroxina 25mcg","Levotiroxina 50mcg","Levotiroxina 75mcg",
+  "Levotiroxina 100mcg","Levotiroxina 125mcg","Levotiroxina 150mcg","Levotiroxina 200mcg",
+  "Propiltiouracil 50mg","Metimazol 5mg","Metimazol 10mg","Metimazol 20mg",
+  // Gastrointestinal
+  "Omeprazol 10mg","Omeprazol 20mg","Omeprazol 40mg",
+  "Pantoprazol 20mg","Pantoprazol 40mg",
+  "Esomeprazol 20mg","Esomeprazol 40mg",
+  "Lansoprazol 15mg","Lansoprazol 30mg",
+  "Ranitidina 75mg","Ranitidina 150mg","Ranitidina 300mg",
+  "Ondansetrona 4mg","Ondansetrona 8mg",
+  "Metoclopramida 10mg","Domperidona 10mg",
+  "Loperamida 2mg","Simeticona 40mg","Simeticona 80mg",
+  "Mesalazina 400mg","Mesalazina 800mg","Mesalazina 1g",
+  "Prednisona 5mg","Prednisona 10mg","Prednisona 20mg","Prednisona 40mg",
+  // Respiratório
+  "Salbutamol (Ventolin) 100mcg inalação",
+  "Formoterol 6mcg inalação","Formoterol 12mcg inalação",
+  "Salmeterol 25mcg inalação","Salmeterol 50mcg inalação",
+  "Beclometasona 50mcg inalação","Beclometasona 100mcg inalação","Beclometasona 250mcg inalação",
+  "Budesonida 100mcg inalação","Budesonida 200mcg inalação","Budesonida 400mcg inalação",
+  "Fluticasona 50mcg inalação","Fluticasona 125mcg inalação","Fluticasona 250mcg inalação",
+  "Ipratrópio 20mcg inalação","Tiotrópio 18mcg inalação","Tiotrópio 2,5mcg spray",
+  "Montelucaste 4mg","Montelucaste 5mg","Montelucaste 10mg",
+  "Cetirizina 5mg","Cetirizina 10mg","Loratadina 10mg","Fexofenadina 120mg","Fexofenadina 180mg",
+  "Desloratadina 5mg","Bilastina 20mg","Rupatadina 10mg",
+  // SNC / Psiquiatria
+  "Sertralina 25mg","Sertralina 50mg","Sertralina 100mg",
+  "Fluoxetina 10mg","Fluoxetina 20mg","Fluoxetina 40mg",
+  "Escitalopram 5mg","Escitalopram 10mg","Escitalopram 20mg",
+  "Citalopram 10mg","Citalopram 20mg","Citalopram 40mg",
+  "Paroxetina 10mg","Paroxetina 20mg","Paroxetina 30mg","Paroxetina 40mg",
+  "Venlafaxina 37,5mg","Venlafaxina 75mg","Venlafaxina 150mg",
+  "Desvenlafaxina 50mg","Desvenlafaxina 100mg",
+  "Duloxetina 30mg","Duloxetina 60mg",
+  "Amitriptilina 10mg","Amitriptilina 25mg","Amitriptilina 50mg","Amitriptilina 75mg",
+  "Nortriptilina 10mg","Nortriptilina 25mg","Nortriptilina 50mg",
+  "Bupropiona 75mg","Bupropiona 150mg SR","Bupropiona 300mg XL",
+  "Mirtazapina 15mg","Mirtazapina 30mg",
+  "Trazodona 50mg","Trazodona 100mg",
+  "Quetiapina 25mg","Quetiapina 50mg","Quetiapina 100mg","Quetiapina 200mg","Quetiapina 300mg",
+  "Olanzapina 2,5mg","Olanzapina 5mg","Olanzapina 10mg","Olanzapina 20mg",
+  "Risperidona 0,5mg","Risperidona 1mg","Risperidona 2mg","Risperidona 3mg","Risperidona 4mg",
+  "Haloperidol 1mg","Haloperidol 2mg","Haloperidol 5mg","Haloperidol 10mg",
+  "Clozapina 25mg","Clozapina 100mg","Aripiprazol 10mg","Aripiprazol 15mg","Aripiprazol 20mg",
+  "Carbonato de lítio 150mg","Carbonato de lítio 300mg",
+  "Ácido valproico 250mg","Ácido valproico 500mg","Valproato de sódio 250mg","Valproato de sódio 500mg",
+  "Carbamazepina 200mg","Carbamazepina 400mg","Oxcarbazepina 150mg","Oxcarbazepina 300mg","Oxcarbazepina 600mg",
+  "Lamotrigina 25mg","Lamotrigina 50mg","Lamotrigina 100mg","Lamotrigina 200mg",
+  "Topiramato 25mg","Topiramato 50mg","Topiramato 100mg",
+  "Clonazepam 0,5mg","Clonazepam 1mg","Clonazepam 2mg",
+  "Diazepam 2mg","Diazepam 5mg","Diazepam 10mg",
+  "Alprazolam 0,25mg","Alprazolam 0,5mg","Alprazolam 1mg",
+  "Bromazepam 1,5mg","Bromazepam 3mg","Bromazepam 6mg",
+  "Lorazepam 1mg","Lorazepam 2mg",
+  "Zolpidem 5mg","Zolpidem 10mg","Zopiclona 7,5mg",
+  "Metilfenidato 10mg","Metilfenidato 20mg","Metilfenidato LA 20mg","Metilfenidato LA 30mg","Metilfenidato LA 40mg",
+  "Lisdexanfetamina 20mg","Lisdexanfetamina 30mg","Lisdexanfetamina 50mg","Lisdexanfetamina 70mg",
+  "Atomoxetina 10mg","Atomoxetina 18mg","Atomoxetina 25mg","Atomoxetina 40mg","Atomoxetina 60mg","Atomoxetina 80mg",
+  // Neurologia / Dor
+  "Levodopa + Carbidopa 100/25mg","Levodopa + Carbidopa 250/25mg",
+  "Pramipexol 0,125mg","Pramipexol 0,25mg","Pramipexol 0,5mg","Pramipexol 1mg",
+  "Donepezila 5mg","Donepezila 10mg","Rivastigmina 1,5mg","Rivastigmina 3mg","Rivastigmina 4,5mg","Rivastigmina 6mg",
+  "Memantina 5mg","Memantina 10mg",
+  "Gabapentina 100mg","Gabapentina 300mg","Gabapentina 400mg",
+  "Pregabalina 25mg","Pregabalina 50mg","Pregabalina 75mg","Pregabalina 150mg","Pregabalina 300mg",
+  "Paracetamol 500mg","Paracetamol 750mg",
+  "Dipirona 500mg","Dipirona 1g",
+  "Ibuprofeno 200mg","Ibuprofeno 400mg","Ibuprofeno 600mg",
+  "Naproxeno 250mg","Naproxeno 500mg","Naproxeno 550mg",
+  "Diclofenaco 25mg","Diclofenaco 50mg",
+  "Tramadol 50mg","Tramadol 100mg",
+  "Codeína 30mg","Morfina 10mg","Morfina 30mg",
+  "Sumatriptano 50mg","Sumatriptano 100mg",
+  "Amitriptilina 25mg (profilaxia enxaqueca)","Topiramato 50mg (profilaxia enxaqueca)",
+  // Antibióticos / Infecções
+  "Amoxicilina 250mg","Amoxicilina 500mg","Amoxicilina 875mg",
+  "Amoxicilina + Clavulanato 500/125mg","Amoxicilina + Clavulanato 875/125mg",
+  "Azitromicina 250mg","Azitromicina 500mg",
+  "Claritromicina 250mg","Claritromicina 500mg",
+  "Cefalexina 250mg","Cefalexina 500mg",
+  "Ciprofloxacino 250mg","Ciprofloxacino 500mg","Ciprofloxacino 750mg",
+  "Levofloxacino 250mg","Levofloxacino 500mg","Levofloxacino 750mg",
+  "Doxiciclina 100mg","Minociclina 50mg","Minociclina 100mg",
+  "Metronidazol 250mg","Metronidazol 400mg","Metronidazol 500mg",
+  "Sulfametoxazol + Trimetoprima 400/80mg","Sulfametoxazol + Trimetoprima 800/160mg",
+  "Nitrofurantoína 50mg","Nitrofurantoína 100mg",
+  "Fluconazol 50mg","Fluconazol 100mg","Fluconazol 150mg","Fluconazol 200mg",
+  // Osteoarticular
+  "Alopurinol 100mg","Alopurinol 200mg","Alopurinol 300mg",
+  "Febuxostate 40mg","Febuxostate 80mg","Colchicina 0,5mg","Colchicina 1mg",
+  "Metotrexato 2,5mg","Hidroxicloroquina 200mg","Leflunomida 10mg","Leflunomida 20mg",
+  "Sulfassalazina 500mg","Sulfassalazina 1g",
+  "Alendronato 10mg","Alendronato 35mg","Alendronato 70mg",
+  "Risedronato 5mg","Risedronato 35mg",
+  "Calcitonina spray nasal","Carbonato de cálcio 500mg","Carbonato de cálcio 1g",
+  // Outros comuns
+  "Levonorgestrel + Etinilestradiol 0,15/0,03mg","Drospirenona + Etinilestradiol 3/0,02mg",
+  "Medroxiprogesterona 2,5mg","Medroxiprogesterona 5mg","Medroxiprogesterona 10mg",
+  "Testosterona 250mg/ml injetável","Testosterona gel 50mg",
+  "Ferro sulfato 200mg","Ferro polimaltosado 100mg","Ferro polimaltosado 50mg/ml",
+  "Ácido fólico 0,4mg","Ácido fólico 5mg",
+  "Vitamina B12 1000mcg","Vitamina D 400UI","Vitamina D 1000UI","Vitamina D 2000UI","Vitamina D 7000UI",
+  "Vitamina D + Cálcio 500UI/200mg","Vitamina K2 + D3",
+  "Ômega 3 1g","Complexo B",
+];
+
+let medsSelecionada = '';
+
+function filtrarMedicamentos(texto) {
+  const div = document.getElementById('meds-sugestoes');
+  if (!texto || texto.length < 2) { div.style.display = 'none'; return; }
+  const lower = texto.toLowerCase();
+  const filtrados = MEDICAMENTOS_LISTA.filter(m => m.toLowerCase().includes(lower)).slice(0, 10);
+  if (!filtrados.length) { div.style.display = 'none'; return; }
+  div.innerHTML = filtrados.map(m =>
+    `<div class="meds-sugestao-item" onclick="selecionarMedicamento('${m.replace(/'/g,"\\'")}')">💊 ${m}</div>`
+  ).join('');
+  div.style.display = 'block';
+}
+
+function selecionarMedicamento(med) {
+  const textarea = document.getElementById('meds_continuos');
+  const input = document.getElementById('meds-input');
+  const linhas = textarea.value ? textarea.value.split('\n').filter(l => l.trim()) : [];
+  const num = String(linhas.length + 1).padStart(2, '0');
+  textarea.value = (textarea.value ? textarea.value + '\n' : '') + `${num} - ${med}`;
+  input.value = '';
+  document.getElementById('meds-sugestoes').style.display = 'none';
+}
+
+function adicionarMedicamento() {
+  const input = document.getElementById('meds-input');
+  if (input.value.trim()) selecionarMedicamento(input.value.trim());
+}
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.meds-autocomplete-wrapper')) {
+    const d = document.getElementById('meds-sugestoes');
+    if (d) d.style.display = 'none';
+  }
+});
+
+// ============ FRASES SEMIOLÓGICAS ============
+const FRASES_SEMIO = [
+  // DOR
+  {cat:'dor', texto:'Dor em queimação, localizada em epigástrio, sem irradiação, de início gradual.'},
+  {cat:'dor', texto:'Dor em cólica, de forte intensidade (8/10), localizada em fossa ilíaca direita, com irradiação para região inguinal.'},
+  {cat:'dor', texto:'Dor em aperto, retroesternal, de início súbito, com irradiação para membro superior esquerdo e mandíbula.'},
+  {cat:'dor', texto:'Dor latejante, hemicraniana, acompanhada de náuseas e fotofobia.'},
+  {cat:'dor', texto:'Dor em facada, localizada em hipocôndrio direito, de forte intensidade, irradiando para escápula direita.'},
+  {cat:'dor', texto:'Dor lombar, de início gradual, piora com movimentação, sem irradiação, com intensidade 6/10.'},
+  {cat:'dor', texto:'Dor contínua, de moderada intensidade (5/10), sem irradiação, sem fatores de melhora ou piora claros.'},
+  {cat:'dor', texto:'Dor em pontada, de início súbito, localizada no hemitórax direito, que piora com a inspiração profunda.'},
+  {cat:'dor', texto:'Dor difusa, de difícil localização, sem irradiação, associada a distensão abdominal.'},
+  {cat:'dor', texto:'Dor em cólica com intensidade progressiva (7/10), associada a sudorese e náuseas.'},
+  // DISPNEIA
+  {cat:'dispneia', texto:'Dispneia aos médios esforços, de início gradual há ___ meses, sem ortopneia.'},
+  {cat:'dispneia', texto:'Dispneia paroxística noturna, que melhora com ortopneia (2 travesseiros), associada a edema de membros inferiores.'},
+  {cat:'dispneia', texto:'Dispneia de instalação súbita em repouso, acompanhada de dor pleurítica e hemoptise.'},
+  {cat:'dispneia', texto:'Dispneia progressiva aos pequenos esforços, associada a tosse produtiva crônica e tabagismo.'},
+  {cat:'dispneia', texto:'Dispneia expiratória com sibilância, de caráter episódico, com piora noturna.'},
+  {cat:'dispneia', texto:'Dispneia com sensação de sufocamento, associada a ansiedade e parestesias em extremidades.'},
+  {cat:'dispneia', texto:'Dispneia de início agudo após ingestão de ___, associada a urticária e angioedema.'},
+  // DIGESTIVO
+  {cat:'digestivo', texto:'Náuseas e vômitos pós-prandiais, de conteúdo alimentar, sem bílis, desde há ___ dias.'},
+  {cat:'digestivo', texto:'Vômitos em jato, sem náusea prévia, de conteúdo alimentar.'},
+  {cat:'digestivo', texto:'Diarreia aquosa, sem sangue ou muco, ___ evacuações/dia, associada a cólicas abdominais.'},
+  {cat:'digestivo', texto:'Diarreia com sangue e muco (disenteria), acompanhada de tenesmo e febre.'},
+  {cat:'digestivo', texto:'Constipação intestinal há ___ dias, última evacuação em ___, sem sangue nas fezes.'},
+  {cat:'digestivo', texto:'Pirose e regurgitação ácida, de predomínio pós-prandial e decúbito, há ___ meses.'},
+  {cat:'digestivo', texto:'Disfagia progressiva inicialmente para sólidos e depois para líquidos, associada a emagrecimento.'},
+  {cat:'digestivo', texto:'Icterícia progressiva, colúria e acolia fecal há ___ dias, sem dor abdominal significativa.'},
+  {cat:'digestivo', texto:'Melena há ___ dias, associada a tontura e palidez cutânea.'},
+  {cat:'digestivo', texto:'Hematêmese em grande quantidade, associada a hipotensão e taquicardia.'},
+  // NEUROLÓGICO
+  {cat:'neurologico', texto:'Cefaleia holocraniana, de forte intensidade (8/10), de início súbito ("como uma bomba"), a pior da vida.'},
+  {cat:'neurologico', texto:'Cefaleia hemicraniana pulsátil, precedida de aura visual (escotoma cintilante), associada a náuseas e fotofobia.'},
+  {cat:'neurologico', texto:'Tontura rotatória (vertigem), associada a nistagmo, náuseas e vômitos, sem componente auditivo.'},
+  {cat:'neurologico', texto:'Síncope precedida de pródromo (tontura, palidez, sudorese fria), com recuperação rápida e espontânea.'},
+  {cat:'neurologico', texto:'Convulsão tônico-clônica generalizada de ___ minutos de duração, com período pós-ictal de confusão.'},
+  {cat:'neurologico', texto:'Hemiparesia súbita à direita, associada a afasia de expressão, de início ___ horas atrás.'},
+  {cat:'neurologico', texto:'Tremor de repouso em extremidades, associado a rigidez e bradicinesia, de início há ___ anos.'},
+  {cat:'neurologico', texto:'Parestesias em "bota e luva" em membros inferiores, de progressão distal para proximal.'},
+  {cat:'neurologico', texto:'Confusão mental de início agudo, com flutuação do nível de consciência, piora noturna.'},
+  // CARDIOVASCULAR
+  {cat:'cardiovascular', texto:'Palpitações de início súbito e término súbito, de ritmo regular, associadas a dispneia.'},
+  {cat:'cardiovascular', texto:'Palpitações irregulares, persistentes, associadas a fadiga e dispneia aos esforços.'},
+  {cat:'cardiovascular', texto:'Edema bilateral de membros inferiores, fóvea positivo, de predomínio vespertino, que melhora com elevação dos MMII.'},
+  {cat:'cardiovascular', texto:'Claudicação intermitente em panturrilhas, após ___ metros de caminhada, que melhora com repouso.'},
+  {cat:'cardiovascular', texto:'Dor precordial típica, opressiva, irradiada para MSE, desencadeada por esforço, com duração de ___ minutos.'},
+  {cat:'cardiovascular', texto:'Síncope durante esforço físico intenso, sem pródromo, com recuperação espontânea.'},
+  {cat:'cardiovascular', texto:'Dispneia progressiva, ortopneia, dispneia paroxística noturna, com edema de MMII e ganho ponderal.'},
+  // GERAL / EXAME FÍSICO
+  {cat:'geral', texto:'Paciente em bom estado geral, lúcido e orientado em tempo, espaço e pessoa, eupneico, anictérico, acianótico, afebril.'},
+  {cat:'geral', texto:'Paciente em regular estado geral, consciente, taquidispneico, com uso de musculatura acessória.'},
+  {cat:'geral', texto:'Paciente em mau estado geral, prostrado, hipocorado (++/4+), desidratado, taquicárdico.'},
+  {cat:'geral', texto:'PA: ___/___mmHg, FC: ___bpm, FR: ___irpm, T: ___°C, SpO2: ___%, peso: ___kg, altura: ___m.'},
+  {cat:'geral', texto:'Febre de início há ___ dias, temperatura máxima de ___°C, de padrão ___, associada a calafrios.'},
+  {cat:'geral', texto:'Astenia e adinamia progressivas há ___ semanas, associadas a emagrecimento não intencional de ___kg.'},
+  {cat:'geral', texto:'Paciente nega febre, nega perda de peso, nega sudorese noturna.'},
+  {cat:'geral', texto:'Sem queixas urinárias ou intestinais associadas.'},
+  {cat:'geral', texto:'Sem sintomas constitucionais (febre, sudorese noturna, emagrecimento).'},
+  {cat:'geral', texto:'Início do quadro há ___ dias/semanas/meses, de evolução progressiva/estável/flutuante.'},
+];
+
+let frasesCategoria = 'dor';
+let frasesSelecionadas = new Set();
+
+function abrirFrasesSemiologicas() {
+  document.getElementById('modal-frases').style.display = 'flex';
+  filtrarFrases('dor');
+}
+
+function filtrarFrases(cat) {
+  frasesCategoria = cat;
+  document.querySelectorAll('.frases-tab').forEach(t => t.classList.remove('active'));
+  const tab = document.getElementById('tab-' + cat);
+  if (tab) tab.classList.add('active');
+  renderizarFrases(FRASES_SEMIO.filter(f => f.cat === cat));
+}
+
+function buscarFrases(texto) {
+  if (!texto.trim()) { filtrarFrases(frasesCategoria); return; }
+  const lower = texto.toLowerCase();
+  renderizarFrases(FRASES_SEMIO.filter(f => f.texto.toLowerCase().includes(lower)));
+}
+
+function renderizarFrases(lista) {
+  const div = document.getElementById('frases-lista');
+  if (!lista.length) { div.innerHTML = '<p style="color:#999;font-size:0.9rem;">Nenhuma frase encontrada.</p>'; return; }
+  div.innerHTML = lista.map(f => {
+    const sel = frasesSelecionadas.has(f.texto);
+    return `<div class="frase-card ${sel ? 'selecionada' : ''}" onclick="toggleFrase(this, '${f.texto.replace(/'/g, "\\'").replace(/\n/g,"\\n")}')">${f.texto}</div>`;
+  }).join('');
+}
+
+function toggleFrase(el, texto) {
+  const hda = document.getElementById('hda');
+  if (!hda) return;
+  if (frasesSelecionadas.has(texto)) {
+    frasesSelecionadas.delete(texto);
+    el.classList.remove('selecionada');
+    hda.value = hda.value.replace('\n' + texto, '').replace(texto + '\n', '').replace(texto, '').trim();
+  } else {
+    frasesSelecionadas.add(texto);
+    el.classList.add('selecionada');
+    hda.value = (hda.value ? hda.value + '\n' : '') + texto;
+  }
+}
+
     // ============ DARK MODE ============
     function toggleDarkMode() {
       const body = document.body;
@@ -2544,7 +2858,8 @@ ${linhas.map(renderLinha).join("")}
     sessionStorage.setItem('anamnese_logado', '1');
     sessionStorage.setItem('anamnese_usuario', usuario);
     document.getElementById('loginOverlay').style.display = 'none';
-    document.getElementById('usuario-nome').textContent   = usuario;
+    const nomeEl = document.getElementById('usuario-nome');
+    if (nomeEl) nomeEl.textContent = usuario;
     renderizarHistorico();
     renderizarLembretes();
     carregarDaNuvem();

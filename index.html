@@ -100,35 +100,71 @@
   </div>
 </div>
 
-  <div class="container">
-        <!-- BOTÃO DARK MODE -->
-    <button class="btn-dark-mode" onclick="toggleDarkMode()" id="btnDarkMode">
-      🌙 Modo Escuro
-    </button>
+<!-- SIDEBAR FIXA -->
+<aside id="sidebar" class="sidebar">
+  <button class="sidebar-toggle" onclick="toggleSidebar()" title="Recolher menu">
+    <span id="sidebar-toggle-icon">☰</span>
+  </button>
 
-    <!-- BOTÃO BACKUP -->
-    <button class="btn-backup" onclick="toggleMenuBackup()" id="btnBackup">
-      💾 Backup ▼
-    </button>
+  <div class="sidebar-logo">
+    <span class="sidebar-logo-icon">🩺</span>
+    <span class="sidebar-label">Anamnese Fast</span>
+  </div>
 
-    <!-- BOTÃO NUVEM -->
-    <button id="btn-nuvem" onclick="abrirConfigNuvem()"
-      style="position:absolute;top:120px;right:20px;padding:10px 18px;border:none;border-radius:8px;font-weight:900;font-size:0.85rem;cursor:pointer;box-shadow:0 4px 10px rgba(0,0,0,0.2);transition:all 0.3s;z-index:100;color:white;background:linear-gradient(135deg,#616161,#424242);">
-      ☁️ Nuvem
-    </button>
+  <nav class="sidebar-nav">
+    <a class="sidebar-item sidebar-item-active" onclick="novaAnamneseForm()">
+      <span class="sidebar-icon">📋</span>
+      <span class="sidebar-label">Nova Anamnese</span>
+    </a>
+    <a class="sidebar-item" onclick="abrirHistorico()">
+      <span class="sidebar-icon">📁</span>
+      <span class="sidebar-label">Histórico</span>
+    </a>
+    <a class="sidebar-item" onclick="document.getElementById('modal-scores').style.display='flex'">
+      <span class="sidebar-icon">📊</span>
+      <span class="sidebar-label">Scores</span>
+    </a>
+    <a class="sidebar-item" onclick="abrirModalEspecialidades()">
+      <span class="sidebar-icon">🏥</span>
+      <span class="sidebar-label">Especialidades</span>
+    </a>
+    <a class="sidebar-item" onclick="abrirFrasesSemiologicas()">
+      <span class="sidebar-icon">📝</span>
+      <span class="sidebar-label">Frases Semiol.</span>
+    </a>
+  </nav>
 
-    <!-- MINI MENU BACKUP -->
-    <div id="menuBackup" style="display:none; position:absolute; top:125px; right:20px; background:white; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); padding:10px; z-index:101; min-width:150px;">
-      <button onclick="exportarDados()" style="width:100%; padding:10px; margin-bottom:8px; background:#4caf50; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.85rem;">📤 Exportar</button>
-      <button onclick="document.getElementById('importFile').click()" style="width:100%; padding:10px; background:#ff9800; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.85rem;">📥 Importar</button>
-      <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarDados(event)">
+  <div class="sidebar-footer">
+    <a class="sidebar-item" onclick="abrirConfigNuvem()">
+      <span class="sidebar-icon" id="sidebar-nuvem-icon">☁️</span>
+      <span class="sidebar-label">Nuvem</span>
+    </a>
+    <a class="sidebar-item" onclick="toggleMenuBackup()">
+      <span class="sidebar-icon">💾</span>
+      <span class="sidebar-label">Backup</span>
+    </a>
+    <a class="sidebar-item" onclick="toggleDarkMode()">
+      <span class="sidebar-icon">🌙</span>
+      <span class="sidebar-label">Modo Escuro</span>
+    </a>
+    <div class="sidebar-user">
+      <span class="sidebar-icon">👤</span>
+      <span class="sidebar-label" id="usuario-nome">-</span>
     </div>
+  </div>
+</aside>
 
-        <!-- BOTÃO ESPECIALIDADES -->
-    <button class="btn-especialidades" onclick="abrirModalEspecialidades()">
-      🏥 Especialidades ▼
-    </button>
+<!-- MINI MENU BACKUP (mantido funcional) -->
+<div id="menuBackup" style="display:none; position:fixed; bottom:120px; left:250px; background:white; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.15); padding:10px; z-index:2001; min-width:160px;">
+  <button onclick="exportarDados()" style="width:100%; padding:10px; margin-bottom:8px; background:#4caf50; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.85rem;">📤 Exportar</button>
+  <button onclick="document.getElementById('importFile').click()" style="width:100%; padding:10px; background:#ff9800; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:700; font-size:0.85rem;">📥 Importar</button>
+  <input type="file" id="importFile" accept=".json" style="display:none;" onchange="importarDados(event)">
+</div>
 
+<!-- WRAPPER MAIN -->
+<div class="app-main" id="appMain">
+
+  <div class="container">
     <div class="header">
       <h1>Anamnese Fast</h1>
       <span class="author">Desenvolvido por: Silvestre Azevedo - Acadêmico de Medicina</span>
@@ -288,6 +324,13 @@
       </div>
       <div class="col">
         <span class="input-label label-bold">MEDICAMENTOS DE USO CONTÍNUO</span>
+        <div class="meds-autocomplete-wrapper">
+  <input type="text" id="meds-input" class="input-field" 
+    placeholder="🔍 Buscar e adicionar medicamento..." 
+    autocomplete="off" oninput="filtrarMedicamentos(this.value)" 
+    onkeydown="if(event.key==='Enter'){adicionarMedicamento();}" />
+  <div id="meds-sugestoes" class="meds-sugestoes" style="display:none;"></div>
+</div>
         <textarea id="meds_continuos" rows="3" placeholder="01 - "></textarea>
       </div>
     </div>
@@ -1248,6 +1291,7 @@
 </div>
 
   <script src="app.js"></script>
+</div><!-- /app-main -->
     <!-- MODAL DE ESPECIALIDADES -->
   <div id="modalEspecialidades" class="modal-especialidades">
     <div class="modal-content-esp">
@@ -1270,5 +1314,29 @@
       <button class="btn-fechar-modal" onclick="fecharModalEspecialidades()">Fechar</button>
     </div>
   </div>
+<!-- MODAL FRASES SEMIOLÓGICAS -->
+<div id="modal-frases" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:12px; width:90%; max-width:700px; max-height:85vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="background:linear-gradient(135deg,#00695c,#004d40); color:white; padding:18px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:1.1rem;">📝 Banco de Frases Semiológicas</h3>
+      <button onclick="document.getElementById('modal-frases').style.display='none'" style="background:transparent; border:none; color:white; font-size:1.5rem; cursor:pointer;">✕</button>
+    </div>
+    <div style="padding:12px 16px; border-bottom:1px solid #eee; display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="frases-tab active" onclick="filtrarFrases('dor')" id="tab-dor">🔴 Dor</button>
+      <button class="frases-tab" onclick="filtrarFrases('dispneia')" id="tab-dispneia">🫁 Dispneia</button>
+      <button class="frases-tab" onclick="filtrarFrases('digestivo')" id="tab-digestivo">🟡 Digestivo</button>
+      <button class="frases-tab" onclick="filtrarFrases('neurologico')" id="tab-neurologico">🧠 Neuro</button>
+      <button class="frases-tab" onclick="filtrarFrases('cardiovascular')" id="tab-cardiovascular">❤️ Cardio</button>
+      <button class="frases-tab" onclick="filtrarFrases('geral')" id="tab-geral">📋 Geral</button>
+    </div>
+    <div style="padding:4px 8px; border-bottom:1px solid #eee;">
+      <input type="text" id="frases-busca" class="input-field" placeholder="🔍 Buscar frase..." style="margin:4px 0;" oninput="buscarFrases(this.value)" />
+    </div>
+    <div id="frases-lista" style="overflow-y:auto; padding:12px 16px; flex:1;"></div>
+    <div style="padding:12px 16px; border-top:1px solid #eee; font-size:0.8rem; color:#888;">
+      Clique na frase para inserir no campo HDA. Clique novamente para remover.
+    </div>
+  </div>
+</div>
 </body>
 </html>
