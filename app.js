@@ -1861,8 +1861,22 @@ ${linhas.map(renderLinha).join("")}
     });
 
 (function() {
-  const CRED_KEY = 'anamnese_credentials';
+  const CRED_KEY    = 'anamnese_credentials';
   const SESSION_KEY = 'anamnese_auth_session';
+  const PERFIS_KEY  = 'anamnese_perfis_nuvem';
+
+  // Credenciais JSONBin do usuário logado (atualizadas no login)
+  let jsonBinKeyAtual = null;
+  let jsonBinBinAtual = null;
+
+  function carregarPerfisNuvem() {
+    try { return JSON.parse(localStorage.getItem(PERFIS_KEY) || '{}'); }
+    catch { return {}; }
+  }
+
+  function salvarPerfisNuvem(perfis) {
+    localStorage.setItem(PERFIS_KEY, JSON.stringify(perfis));
+  }
 
   async function hashSenha(senha) {
     const encoder = new TextEncoder();
@@ -1976,6 +1990,20 @@ ${linhas.map(renderLinha).join("")}
     const senhaHash = await hashSenha(senha);
 
     if (usuario === credenciais.usuario && senhaHash === credenciais.senhaHash) {
+      // Carregar credenciais JSONBin do perfil deste usuário
+      const perfis = carregarPerfisNuvem();
+      const perfil = perfis[usuario];
+      if (perfil && perfil.jsonBinKey && perfil.jsonBinBin) {
+        jsonBinKeyAtual = perfil.jsonBinKey;
+        jsonBinBinAtual = perfil.jsonBinBin;
+        // Atualizar localStorage para compatibilidade com UI de nuvem
+        localStorage.setItem('anamnese_jsonbin_key', jsonBinKeyAtual);
+        localStorage.setItem('anamnese_jsonbin_bin', jsonBinBinAtual);
+      } else {
+        // Fallback: usar o que já está no localStorage (configuração global)
+        jsonBinKeyAtual = localStorage.getItem('anamnese_jsonbin_key') || null;
+        jsonBinBinAtual = localStorage.getItem('anamnese_jsonbin_bin') || null;
+      }
       criarSessao();
       esconderLogin();
       inicializarApp();
@@ -2013,6 +2041,15 @@ ${linhas.map(renderLinha).join("")}
 
     const senhaHash = await hashSenha(senha);
     salvarCredenciais(usuario, senhaHash);
+
+    // Associar credenciais JSONBin ao perfil deste usuário
+    const perfis = carregarPerfisNuvem();
+    perfis[usuario] = {
+      jsonBinKey: localStorage.getItem('anamnese_jsonbin_key') || '',
+      jsonBinBin: localStorage.getItem('anamnese_jsonbin_bin') || '',
+    };
+    salvarPerfisNuvem(perfis);
+
     criarSessao();
     esconderLogin();
     inicializarApp();
@@ -2699,8 +2736,8 @@ ${linhas.map(renderLinha).join("")}
   // ============ SINCRONIZAÇÃO JSONBIN ============
   const JSONBIN_BASE = 'https://api.jsonbin.io/v3';
 
-  function getJBKey()  { return localStorage.getItem('anamnese_jsonbin_key') || ''; }
-  function getJBBin()  { return localStorage.getItem('anamnese_jsonbin_bin') || ''; }
+  function getJBKey() { return jsonBinKeyAtual || localStorage.getItem('anamnese_jsonbin_key') || ''; }
+  function getJBBin() { return jsonBinBinAtual || localStorage.getItem('anamnese_jsonbin_bin') || ''; }
 
   function atualizarIndicadorNuvem(estado) {
     const btn = document.getElementById('btn-nuvem');
@@ -2790,95 +2827,22 @@ ${linhas.map(renderLinha).join("")}
     const bin = getJBBin();
     const novaKey = prompt('Master Key do JSONBin (deixe em branco para manter a atual):', key ? '(configurada)' : '');
     if (novaKey !== null && novaKey.trim() && novaKey.trim() !== '(configurada)') {
-      localStorage.setItem('anamnese_jsonbin_key', novaKey.trim());
+      jsonBinKeyAtual = novaKey.trim();
+      localStorage.setItem('anamnese_jsonbin_key', jsonBinKeyAtual);
     }
     const novaBin = prompt('Bin ID do JSONBin (deixe em branco para manter o atual):', bin || '');
     if (novaBin !== null && novaBin.trim()) {
-      localStorage.setItem('anamnese_jsonbin_bin', novaBin.trim());
+      jsonBinBinAtual = novaBin.trim();
+      localStorage.setItem('anamnese_jsonbin_bin', jsonBinBinAtual);
+    }
+    // Salvar no perfil do usuário logado
+    const sessao = JSON.parse(sessionStorage.getItem('anamnese_auth_session') || 'null');
+    if (sessao && sessao.usuario) {
+      const perfis = carregarPerfisNuvem();
+      perfis[sessao.usuario] = { jsonBinKey: getJBKey(), jsonBinBin: getJBBin() };
+      salvarPerfisNuvem(perfis);
     }
     sincronizarAgora();
   }
 
-  // ============ LOGIN / AUTENTICAÇÃO ============
-  const CRED_KEY = 'anamnese_credentials';
-
-  async function hashSenha(senha) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(senha);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray  = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  }
-
-  async function cadastrarUsuario(usuario, senha) {
-    const senhaHash = await hashSenha(senha);
-    localStorage.setItem(CRED_KEY, JSON.stringify({ usuario, senhaHash }));
-  }
-
-  async function verificarLogin(usuario, senha) {
-    const data = localStorage.getItem(CRED_KEY);
-    if (!data) return false;
-    const cred = JSON.parse(data);
-    const hash = await hashSenha(senha);
-    return cred.usuario === usuario && cred.senhaHash === hash;
-  }
-
-  function deslogar() {
-    localStorage.removeItem(CRED_KEY);
-    location.reload();
-  }
-
-  async function fazerLogin() {
-    const usuario = document.getElementById('login-usuario').value.trim();
-    const senha   = document.getElementById('login-senha').value;
-    const erro    = document.getElementById('login-erro');
-
-    if (!usuario || !senha) {
-      erro.textContent = 'Preencha usuário e senha.';
-      return;
-    }
-
-    const cred = localStorage.getItem(CRED_KEY);
-
-    if (!cred) {
-      await cadastrarUsuario(usuario, senha);
-      finalizarLogin(usuario);
-      return;
-    }
-
-    const ok = await verificarLogin(usuario, senha);
-    if (ok) {
-      finalizarLogin(usuario);
-    } else {
-      erro.textContent = 'Usuário ou senha incorretos.';
-    }
-  }
-
-  function finalizarLogin(usuario) {
-    sessionStorage.setItem('anamnese_logado', '1');
-    sessionStorage.setItem('anamnese_usuario', usuario);
-    document.getElementById('loginOverlay').style.display = 'none';
-    const nomeEl = document.getElementById('usuario-nome');
-    if (nomeEl) nomeEl.textContent = usuario;
-    renderizarHistorico();
-    renderizarLembretes();
-    carregarDaNuvem();
-  }
-
-  function inicializarLogin() {
-    const logado  = sessionStorage.getItem('anamnese_logado');
-    const usuario = sessionStorage.getItem('anamnese_usuario');
-    if (logado === '1' && usuario) {
-      finalizarLogin(usuario);
-    } else {
-      document.getElementById('loginOverlay').style.display = 'flex';
-    }
-    const inputSenha = document.getElementById('login-senha');
-    if (inputSenha) {
-      inputSenha.addEventListener('keydown', e => { if (e.key === 'Enter') fazerLogin(); });
-    }
-    atualizarIndicadorNuvem(getJBKey() ? 'ok' : 'desconf');
-  }
-
-  document.addEventListener('DOMContentLoaded', inicializarLogin);
 
