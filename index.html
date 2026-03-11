@@ -31,17 +31,19 @@
             <input id="loginSenha" type="password" placeholder="Senha" autocomplete="current-password">
             <button id="loginEntrar" type="button">Entrar</button>
             <div id="loginErro" style="display: none; margin-top: 10px; color: var(--alert); font-weight: 900; font-size: 0.85rem;">Usuário ou senha incorretos.</div>
+            <div class="toggle-link" onclick="mostrarTela('telaCadastro')" style="margin-top:8px;">Criar nova conta</div>
             <div class="toggle-link" onclick="mostrarReset()">Esqueci minha senha / Resetar credenciais</div>
         </div>
         
-        <!-- TELA DE CADASTRO (primeira vez) -->
+        <!-- TELA DE CADASTRO (primeira vez ou novo usuário) -->
         <div id="telaCadastro" style="display: none;">
-            <p><strong>Primeira vez aqui! Crie suas credenciais:</strong></p>
+            <p><strong>Criar nova conta</strong></p>
             <input id="cadastroUsuario" type="text" placeholder="Escolha um usuário" autocomplete="username">
             <input id="cadastroSenha" type="password" placeholder="Escolha uma senha" autocomplete="new-password">
             <input id="cadastroSenhaConfirm" type="password" placeholder="Confirme a senha" autocomplete="new-password">
             <button id="cadastroBotao" type="button">Criar conta</button>
             <div id="cadastroErro" style="display: none; margin-top: 10px; color: var(--alert); font-weight: 900; font-size: 0.85rem;"></div>
+            <div class="toggle-link" onclick="mostrarTela('telaLogin')" style="margin-top:8px;">Já tenho conta — Fazer login</div>
         </div>
         
         <!-- TELA DE RESET -->
@@ -151,6 +153,10 @@
       <span class="sidebar-icon">👤</span>
       <span class="sidebar-label" id="usuario-nome">-</span>
     </div>
+    <a class="sidebar-item" onclick="fazerLogout()" style="color:#e57373;">
+      <span class="sidebar-icon">🚪</span>
+      <span class="sidebar-label">Sair</span>
+    </a>
   </div>
 </aside>
 
@@ -932,6 +938,7 @@
     <!-- ============ FIM SEÇÃO PSIQUIATRIA ============ -->
 
       <button class="btn-generate" onclick="gerarRelatorio()">GERAR EVOLUÇÃO</button>
+      <button class="btn-generate" style="background:var(--primary-dark, #00695c);" onclick="gerarReceituario()">📋 GERAR RECEITUÁRIO</button>
       <button class="btn-reset" onclick="limparTudo()">LIMPAR TUDO</button>
     </div>
   </div>
@@ -949,7 +956,40 @@
     </div>
   </div>
 
-<!-- Botão flutuante Scores -->
+<!-- Modal Receituário -->
+  <div id="modalReceituario" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h2 style="color:var(--primary); text-align:center; margin-bottom:6px;">📋 Receituário Médico</h2>
+      <p style="text-align:center; font-size:0.82rem; color:#888; margin-bottom:12px;">
+        ⚠️ Modelo de receituário — não substitui receita em papel timbrado institucional.
+      </p>
+
+      <div style="display:flex; gap:10px; justify-content:center; margin-bottom:14px;">
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem;">
+          <input type="radio" name="tipoReceita" id="receita-continuo" value="continuo" checked onchange="atualizarReceituario()">
+          Uso contínuo
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem;">
+          <input type="radio" name="tipoReceita" id="receita-conduta" value="conduta" onchange="atualizarReceituario()">
+          Conduta atual
+        </label>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.9rem;">
+          <input type="radio" name="tipoReceita" id="receita-orientacoes" value="orientacoes" onchange="atualizarReceituario()">
+          Orientações
+        </label>
+      </div>
+
+      <textarea id="textoReceituario" readonly style="width:100%; height:320px; font-family:monospace; font-size:0.9rem; border:1px solid #ccc; border-radius:6px; padding:10px; resize:vertical; box-sizing:border-box;"></textarea>
+
+      <div class="modal-actions">
+        <button class="btn-modal btn-copy" onclick="copiarReceituario()">Copiar Texto</button>
+        <button class="btn-modal btn-pdf" onclick="salvarPDFReceituario()">Imprimir / PDF</button>
+        <button class="btn-modal btn-close" onclick="fecharModalReceituario()">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+
 <button id="btn-scores-flutuante" type="button" onclick="abrirScores()">
   Scores
 </button>

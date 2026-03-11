@@ -1652,6 +1652,260 @@ function capturarDadosPsiq() {
       document.getElementById("modalResultado").style.display = "none";
     }
 
+    function montarTextoReceituario(tipo) {
+      const nome    = v("nome")    || "—";
+      const idade   = v("idade")   || "—";
+      const sexo    = v("sexo")    || "—";
+      const unidade = v("unidade") || "—";
+      const now     = new Date();
+      const data    = now.toLocaleDateString("pt-BR");
+
+      const cabecalho = [
+        "RECEITUÁRIO MÉDICO",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        `PACIENTE : ${nome}`,
+        `IDADE    : ${idade}    SEXO: ${sexo}`,
+        `UNIDADE  : ${unidade}`,
+        `DATA     : ${data}`,
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        ""
+      ];
+
+      let corpo = [];
+
+      if (tipo === "continuo") {
+        const meds = v("meds_continuos") || "";
+        corpo.push("USO CONTÍNUO:");
+        corpo.push("");
+        if (meds.trim()) {
+          meds.split("\n").forEach((linha, i) => {
+            if (linha.trim()) corpo.push(`${String(i + 1).padStart(2, "0")}. ${linha.trim()}`);
+          });
+        } else {
+          corpo.push("(Nenhum medicamento de uso contínuo registrado)");
+        }
+      } else if (tipo === "conduta") {
+        const presc = v("prescricao") || "";
+        corpo.push("PRESCRIÇÃO / CONDUTA ATUAL:");
+        corpo.push("");
+        if (presc.trim()) {
+          presc.split("\n").forEach((linha, i) => {
+            if (linha.trim()) corpo.push(`${String(i + 1).padStart(2, "0")}. ${linha.trim()}`);
+          });
+        } else {
+          corpo.push("(Nenhuma prescrição registrada)");
+        }
+      } else if (tipo === "orientacoes") {
+        const orient = v("orientacoes") || "";
+        corpo.push("ORIENTAÇÕES AO PACIENTE:");
+        corpo.push("");
+        if (orient.trim()) {
+          orient.split("\n").forEach((linha, i) => {
+            if (linha.trim()) corpo.push(`${String(i + 1).padStart(2, "0")}. ${linha.trim()}`);
+          });
+        } else {
+          corpo.push("(Nenhuma orientação registrada)");
+        }
+      }
+
+      const rodape = [
+        "",
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+        "⚠️  Modelo de receituário — não substitui receita em papel timbrado institucional.",
+        ""
+      ];
+
+      return [...cabecalho, ...corpo, ...rodape].join("\n");
+    }
+
+    function getTipoReceita() {
+      const sel = document.querySelector('input[name="tipoReceita"]:checked');
+      return sel ? sel.value : "continuo";
+    }
+
+    function gerarReceituario() {
+      const tipo  = getTipoReceita();
+      const texto = montarTextoReceituario(tipo);
+      document.getElementById("textoReceituario").value = texto;
+      document.getElementById("modalReceituario").style.display = "flex";
+    }
+
+    function atualizarReceituario() {
+      const tipo  = getTipoReceita();
+      const texto = montarTextoReceituario(tipo);
+      document.getElementById("textoReceituario").value = texto;
+    }
+
+    function fecharModalReceituario() {
+      document.getElementById("modalReceituario").style.display = "none";
+    }
+
+    function copiarReceituario() {
+      const ta = document.getElementById("textoReceituario");
+      ta.select();
+      document.execCommand("copy");
+      alert("Receituário copiado!");
+    }
+
+    function salvarPDFReceituario() {
+      const tipo  = getTipoReceita();
+      const now   = new Date();
+      const data  = now.toLocaleDateString("pt-BR");
+      const hora  = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+      const meds    = v("meds_continuos") || "";
+      const presc   = v("prescricao")     || "";
+      const orient  = v("orientacoes")    || "";
+
+      function numerarLinhas(texto, vazio) {
+        const linhas = texto.split("\n").filter(l => l.trim());
+        if (!linhas.length) return `<p class="vazio">${vazio}</p>`;
+        return linhas.map((l, i) =>
+          `<div class="item-receita"><span class="num">${String(i + 1).padStart(2, "0")}.</span><span>${l.trim()}</span></div>`
+        ).join("");
+      }
+
+      let titulo = "", conteudo = "";
+      if (tipo === "continuo") {
+        titulo   = "MEDICAMENTOS DE USO CONTÍNUO";
+        conteudo = numerarLinhas(meds, "Nenhum medicamento registrado.");
+      } else if (tipo === "conduta") {
+        titulo   = "PRESCRIÇÃO / CONDUTA ATUAL";
+        conteudo = numerarLinhas(presc, "Nenhuma prescrição registrada.");
+      } else {
+        titulo   = "ORIENTAÇÕES AO PACIENTE";
+        conteudo = numerarLinhas(orient, "Nenhuma orientação registrada.");
+      }
+
+      const printWindow = window.open("", "_blank");
+      printWindow.document.write(`
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Receituário - ${v("nome")}</title>
+<style>
+@page { margin: 2cm; size: A5; }
+* { box-sizing: border-box; }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11pt;
+  line-height: 1.6;
+  color: #111;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.header {
+  text-align: center;
+  border-bottom: 2.5px solid #00695c;
+  padding-bottom: 10px;
+  margin-bottom: 18px;
+}
+.header h1 {
+  margin: 0 0 4px 0;
+  color: #00695c;
+  font-size: 16pt;
+  letter-spacing: 1px;
+}
+.header .sub {
+  font-size: 9.5pt;
+  color: #555;
+}
+.info-box {
+  background: #f7f7f7;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  font-size: 10.5pt;
+}
+.info-box table { width: 100%; border-collapse: collapse; }
+.info-box td { padding: 2px 6px; }
+.info-box td:first-child { font-weight: bold; color: #00695c; width: 90px; }
+.secao-titulo {
+  font-size: 11pt;
+  font-weight: bold;
+  color: #00695c;
+  border-bottom: 1px solid #00695c;
+  margin-bottom: 10px;
+  padding-bottom: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.item-receita {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-items: baseline;
+}
+.item-receita .num {
+  font-weight: bold;
+  color: #00695c;
+  min-width: 24px;
+}
+.vazio { color: #999; font-style: italic; }
+.aviso {
+  margin-top: 20px;
+  font-size: 8.5pt;
+  color: #999;
+  border-top: 1px dashed #ccc;
+  padding-top: 6px;
+  text-align: center;
+}
+.assinatura {
+  margin-top: 50px;
+  display: flex;
+  justify-content: space-between;
+}
+.assinatura .bloco { text-align: center; width: 46%; }
+.assinatura .linha {
+  border-top: 1.5px solid #333;
+  margin-bottom: 5px;
+}
+.assinatura .legenda { font-size: 9pt; color: #444; }
+@media print { body { margin: 0; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>RECEITUÁRIO MÉDICO</h1>
+  <div class="sub">ANAMNESE FAST &nbsp;|&nbsp; ${data} às ${hora}</div>
+</div>
+
+<div class="info-box">
+  <table>
+    <tr><td>Paciente:</td><td>${v("nome") || "—"}</td></tr>
+    <tr><td>Idade:</td><td>${v("idade") || "—"} &nbsp;&nbsp; <strong>Sexo:</strong> ${v("sexo") || "—"}</td></tr>
+    ${v("unidade") ? `<tr><td>Unidade:</td><td>${v("unidade")}</td></tr>` : ""}
+  </table>
+</div>
+
+<div class="secao-titulo">${titulo}</div>
+${conteudo}
+
+<div class="aviso">
+  ⚠️ Modelo de receituário — não substitui receita em papel timbrado / padrão institucional.
+</div>
+
+<div class="assinatura">
+  <div class="bloco">
+    <div class="linha"></div>
+    <div class="legenda">Assinatura do Médico</div>
+  </div>
+  <div class="bloco">
+    <div class="linha"></div>
+    <div class="legenda">CRM / Carimbo</div>
+  </div>
+</div>
+
+</body>
+</html>`);
+      printWindow.document.close();
+      setTimeout(() => printWindow.print(), 400);
+    }
+
+
     function copiar(){
       const ta = document.getElementById("finalReport");
       ta.select();
@@ -1886,26 +2140,53 @@ ${linhas.map(renderLinha).join("")}
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
+  function carregarTodosUsuarios() {
+    try {
+      const data = localStorage.getItem(CRED_KEY);
+      if (!data) return {};
+      const parsed = JSON.parse(data);
+      // Migração: formato antigo {usuario, senhaHash} → novo {usuario: {senhaHash}}
+      if (parsed && parsed.usuario && parsed.senhaHash && typeof parsed === 'object' && !parsed[parsed.usuario]) {
+        const migrado = {};
+        migrado[parsed.usuario] = { senhaHash: parsed.senhaHash };
+        localStorage.setItem(CRED_KEY, JSON.stringify(migrado));
+        return migrado;
+      }
+      return parsed || {};
+    } catch (e) {
+      return {};
+    }
+  }
+
   function salvarCredenciais(usuario, senhaHash) {
     try {
-      localStorage.setItem(CRED_KEY, JSON.stringify({ usuario, senhaHash }));
+      const todos = carregarTodosUsuarios();
+      todos[usuario] = { senhaHash };
+      localStorage.setItem(CRED_KEY, JSON.stringify(todos));
     } catch (e) {
       console.error('Erro ao salvar credenciais:', e);
     }
   }
 
   function obterCredenciais() {
-    try {
-      const data = localStorage.getItem(CRED_KEY);
-      return data ? JSON.parse(data) : null;
-    } catch (e) {
-      return null;
-    }
+    const todos = carregarTodosUsuarios();
+    return Object.keys(todos).length > 0 ? todos : null;
   }
 
-  function limparCredenciais() {
+  function usuarioExiste(usuario) {
+    const todos = carregarTodosUsuarios();
+    return !!todos[usuario];
+  }
+
+  function limparCredenciais(usuario) {
     try {
-      localStorage.removeItem(CRED_KEY);
+      if (usuario) {
+        const todos = carregarTodosUsuarios();
+        delete todos[usuario];
+        localStorage.setItem(CRED_KEY, JSON.stringify(todos));
+      } else {
+        localStorage.removeItem(CRED_KEY);
+      }
       sessionStorage.removeItem(SESSION_KEY);
     } catch (e) {
       console.error('Erro ao limpar credenciais:', e);
@@ -1944,6 +2225,7 @@ ${linhas.map(renderLinha).join("")}
       if (el) el.style.display = id === tela ? 'block' : 'none';
     });
   }
+  window.mostrarTela = mostrarTela;
 
   window.mostrarReset = function() {
     mostrarTela('telaReset');
@@ -1952,6 +2234,20 @@ ${linhas.map(renderLinha).join("")}
   window.voltarLogin = function() {
     mostrarTela('telaLogin');
     limparErros();
+  };
+
+  window.fazerLogout = function() {
+    sessionStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem('anamnese_usuario_logado');
+    jsonBinKeyAtual = null;
+    jsonBinBinAtual = null;
+    mostrarTela('telaLogin');
+    mostrarLogin();
+    limparErros();
+    const loginUsuario = document.getElementById('loginUsuario');
+    if (loginUsuario) { loginUsuario.value = ''; loginUsuario.focus(); }
+    const loginSenha = document.getElementById('loginSenha');
+    if (loginSenha) loginSenha.value = '';
   };
 
   function limparErros() {
@@ -1981,26 +2277,26 @@ ${linhas.map(renderLinha).join("")}
       return;
     }
 
-    const credenciais = obterCredenciais();
-    if (!credenciais) {
-      mostrarErro('loginErro', 'Nenhuma conta cadastrada.');
+    const todos = carregarTodosUsuarios();
+    if (!todos[usuario]) {
+      mostrarErro('loginErro', 'Usuário não encontrado.');
       return;
     }
 
     const senhaHash = await hashSenha(senha);
 
-    if (usuario === credenciais.usuario && senhaHash === credenciais.senhaHash) {
+    if (senhaHash === todos[usuario].senhaHash) {
+      // Guardar usuário logado na sessão
+      sessionStorage.setItem('anamnese_usuario_logado', usuario);
       // Carregar credenciais JSONBin do perfil deste usuário
       const perfis = carregarPerfisNuvem();
       const perfil = perfis[usuario];
       if (perfil && perfil.jsonBinKey && perfil.jsonBinBin) {
         jsonBinKeyAtual = perfil.jsonBinKey;
         jsonBinBinAtual = perfil.jsonBinBin;
-        // Atualizar localStorage para compatibilidade com UI de nuvem
         localStorage.setItem('anamnese_jsonbin_key', jsonBinKeyAtual);
         localStorage.setItem('anamnese_jsonbin_bin', jsonBinBinAtual);
       } else {
-        // Fallback: usar o que já está no localStorage (configuração global)
         jsonBinKeyAtual = localStorage.getItem('anamnese_jsonbin_key') || null;
         jsonBinBinAtual = localStorage.getItem('anamnese_jsonbin_bin') || null;
       }
@@ -2039,17 +2335,22 @@ ${linhas.map(renderLinha).join("")}
       return;
     }
 
+    if (usuarioExiste(usuario)) {
+      mostrarErro('cadastroErro', 'Este usuário já está cadastrado. Escolha outro nome.');
+      return;
+    }
+
     const senhaHash = await hashSenha(senha);
     salvarCredenciais(usuario, senhaHash);
 
-    // Associar credenciais JSONBin ao perfil deste usuário
+    // Perfil JSONBin começa vazio; usuário configura depois na tela de Nuvem
     const perfis = carregarPerfisNuvem();
-    perfis[usuario] = {
-      jsonBinKey: localStorage.getItem('anamnese_jsonbin_key') || '',
-      jsonBinBin: localStorage.getItem('anamnese_jsonbin_bin') || '',
-    };
-    salvarPerfisNuvem(perfis);
+    if (!perfis[usuario]) {
+      perfis[usuario] = { jsonBinKey: '', jsonBinBin: '' };
+      salvarPerfisNuvem(perfis);
+    }
 
+    sessionStorage.setItem('anamnese_usuario_logado', usuario);
     criarSessao();
     esconderLogin();
     inicializarApp();
@@ -2057,9 +2358,13 @@ ${linhas.map(renderLinha).join("")}
   }
 
   function resetarCredenciais() {
-    if (confirm('⚠️ Tem certeza? Isso apagará seu usuário e senha atuais.')) {
-      limparCredenciais();
-      alert('✅ Credenciais resetadas. Você pode criar uma nova conta.');
+    const usuarioLogado = sessionStorage.getItem('anamnese_usuario_logado') || '';
+    const msg = usuarioLogado
+      ? `⚠️ Tem certeza? Isso apagará a conta "${usuarioLogado}".`
+      : '⚠️ Tem certeza? Isso apagará todas as credenciais.';
+    if (confirm(msg)) {
+      limparCredenciais(usuarioLogado || null);
+      alert('✅ Conta removida. Você pode fazer login com outra conta ou criar uma nova.');
       location.reload();
     }
   }
@@ -2076,19 +2381,22 @@ ${linhas.map(renderLinha).join("")}
   }
 
   function inicializarLogin() {
-    const credenciais = obterCredenciais();
+    const todos = carregarTodosUsuarios();
+    const temUsuarios = Object.keys(todos).length > 0;
 
-    if (!credenciais) {
+    if (verificarSessao()) {
+      esconderLogin();
+      inicializarApp();
+    } else if (!temUsuarios) {
+      // Nenhuma conta ainda: abrir cadastro diretamente
       mostrarTela('telaCadastro');
       mostrarLogin();
       setTimeout(() => {
         const cadastroUsuario = document.getElementById('cadastroUsuario');
         if (cadastroUsuario) cadastroUsuario.focus();
       }, 100);
-    } else if (verificarSessao()) {
-      esconderLogin();
-      inicializarApp();
     } else {
+      // Já existe ao menos uma conta: mostrar login
       mostrarTela('telaLogin');
       mostrarLogin();
       setTimeout(() => {
