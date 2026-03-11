@@ -2237,6 +2237,12 @@ ${linhas.map(renderLinha).join("")}
   };
 
   window.fazerLogout = function() {
+    // Salva automaticamente se houver nome preenchido
+    const nome = document.getElementById('nome')?.value?.trim();
+    if (nome && typeof window.salvarPacienteAtual === 'function') {
+      window.salvarPacienteAtual();
+    }
+
     sessionStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem('anamnese_usuario_logado');
     jsonBinKeyAtual = null;
